@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from supabase import create_client, Client
 import pandas as pd
+import gspread
 from datetime import datetime, date, timedelta
 import os
 import time
