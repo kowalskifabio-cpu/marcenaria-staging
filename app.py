@@ -888,7 +888,9 @@ if login():
             st.subheader("2. Histórico")
             if st.button("🏁 SINCRONIZAR HISTÓRICO"):
                 with st.spinner("Migrando baixas..."):
-                    df_hist_full = conn.read(worksheet="Pedidos_Concluidos", ttl=0)
+                    sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
+                    url_sync = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Pedidos_Concluidos"
+                    df_hist_full = pd.read_csv(url_sync)
                     prog = st.progress(0)
                     for i, row in df_hist_full.iterrows():
                         salvar_no_supabase(row['ID_Item'], "ARQUIVADO", row)
