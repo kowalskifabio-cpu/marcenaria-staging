@@ -209,28 +209,25 @@ if login():
         except Exception as e:
             pass
 
-    def atualizar_status_lote(lista_ids, novo_status, df_referencia):
+   def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         try:
-            # 1. ATUALIZAR APENAS NO SUPABASE
-            # Percorremos a lista de itens selecionados e salvamos no banco
+            # 1. GRAVAR DIRETO E APENAS NO SUPABASE
             for id_item in lista_ids:
                 try:
-                    # Pegamos os dados da linha para garantir que o Supabase receba tudo completo
+                    # Buscamos a linha do item para ter os dados completos (CTR, Obra, etc)
                     row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
+                    # Chamamos a função de sincronia que já testamos e deu certo antes
                     salvar_no_supabase(id_item, novo_status, row)
                 except Exception as e_item:
-                    st.error(f"Erro ao processar item {id_item}: {e_item}")
+                    st.error(f"Erro no item {id_item}: {e_item}")
                     continue
             
-            # 2. LIMPAR O CACHE E AVISAR O USUÁRIO
+            # 2. LIMPAR O CACHE PARA O APP MOSTRAR O NOVO STATUS NA TELA
             st.cache_data.clear()
-            st.success(f"Status atualizado para '{novo_status}' com sucesso no Banco de Dados!")
-            
-            # 3. FORÇAR RECARREGAMENTO DA PÁGINA (OPCIONAL)
-            # st.rerun() 
+            st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
             
         except Exception as e:
-            st.error(f"Erro geral na atualização: {e}")
+            st.error(f"Erro geral: {e}")
         
         # 2. Atualiza no Supabase
         for id_item in lista_ids:
