@@ -142,12 +142,16 @@ if login():
     
     @st.cache_data(ttl=15)
     def load_pedidos():
-        df = conn.read(worksheet="Pedidos")
+        # Caminho direto via Pandas para evitar o erro de HTTP da biblioteca
+        sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Pedidos"
+        df = pd.read_csv(url)
+    
         df = df.dropna(subset=['ID_Item'])
         df['ID_Item'] = df['ID_Item'].astype(str).str.strip()
         df['sort_num'] = df['Item'].apply(extrair_numero_item)
         return df.drop_duplicates(subset=['ID_Item'], keep='first')
-
+        
     @st.cache_data(ttl=60)
     def load_historico():
         try:
