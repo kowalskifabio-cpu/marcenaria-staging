@@ -22,7 +22,7 @@ def init_supabase():
         return None
 
 supabase = init_supabase()
-conn = st.connection("gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type="gsheets")
 
 # --- FUNÇÃO DE AUTO-REFRESH (5 MINUTOS) ---
 if "last_refresh" not in st.session_state:
