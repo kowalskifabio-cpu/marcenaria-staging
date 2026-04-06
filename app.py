@@ -22,8 +22,7 @@ def init_supabase():
         return None
 
 supabase = init_supabase()
-conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet="https://docs.google.com/spreadsheets/d/1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI/edit")
-
+conn = st.connection("gsheets", type=GSheetsConnection)
 # --- FUNÇÃO DE AUTO-REFRESH (5 MINUTOS) ---
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
