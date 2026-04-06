@@ -211,40 +211,26 @@ if login():
 
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         try:
-            # 1. Autenticação Direta com o Crachá (Secrets)
-            creds = st.secrets["gcp_service_account"]
-            # Criamos o acesso oficial usando as credenciais do JSON que você colou nas Secrets
-            gc = gspread.service_account_from_dict(creds)
-            
-            # 2. Abrir a Planilha de Teste pelo ID (Direto ao ponto)
-            sh = gc.open_by_key("1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI")
-            worksheet = sh.worksheet("Pedidos")
-            
-            # 3. Ler os dados atuais
-            data = worksheet.get_all_records()
-            df_update = pd.DataFrame(data)
-            
-            # 4. Atualizar o Status na Memória
-            # Garantimos que os IDs sejam tratados como texto para não dar erro
-            lista_str = [str(x) for x in lista_ids]
-            df_update.loc[df_update['ID_Item'].astype(str).isin(lista_str), 'Status_Atual'] = novo_status
-            
-            # 5. Gravar de volta na Planilha (Limpa e Sobrescreve com os novos dados)
-            # Este comando é o "trator" que resolve o problema da escrita
-            worksheet.update([df_update.columns.values.tolist()] + df_update.values.tolist())
-            
-            # 6. Atualizar no Supabase (O que já está funcionando perfeitamente)
+            # 1. ATUALIZAR APENAS NO SUPABASE
+            # Percorremos a lista de itens selecionados e salvamos no banco
             for id_item in lista_ids:
                 try:
-                    row = df_referencia[df_referencia['ID_Item'] == id_item].iloc[0]
+                    # Pegamos os dados da linha para garantir que o Supabase receba tudo completo
+                    row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
                     salvar_no_supabase(id_item, novo_status, row)
-                except: continue
+                except Exception as e_item:
+                    st.error(f"Erro ao processar item {id_item}: {e_item}")
+                    continue
             
+            # 2. LIMPAR O CACHE E AVISAR O USUÁRIO
             st.cache_data.clear()
-            st.success("Status atualizado no Sheets e Supabase!")
+            st.success(f"Status atualizado para '{novo_status}' com sucesso no Banco de Dados!")
+            
+            # 3. FORÇAR RECARREGAMENTO DA PÁGINA (OPCIONAL)
+            # st.rerun() 
             
         except Exception as e:
-            st.error(f"Erro na gravação direta (gspread): {e}")
+            st.error(f"Erro geral na atualização: {e}")
         
         # 2. Atualiza no Supabase
         for id_item in lista_ids:
