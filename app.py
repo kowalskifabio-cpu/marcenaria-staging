@@ -165,9 +165,9 @@ if login():
 
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
     def salvar_no_supabase(id_item, novo_status, row_dados=None):
-    """Atualiza a tabela principal de pedidos no Supabase"""
-    try:
-        payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
+        """Atualiza a tabela principal de pedidos no Supabase"""
+        try:
+            payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
         if row_dados is not None:
             # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
             qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
