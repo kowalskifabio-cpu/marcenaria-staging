@@ -208,37 +208,7 @@ if login():
             supabase.table("alteracoes").insert(payload).execute()
         except Exception as e:
             pass
-
-   def atualizar_status_lote(lista_ids, novo_status, df_referencia):
-        """Atualiza o status apenas no Supabase, ignorando o erro do Google Sheets"""
-        try:
-            # 1. GRAVAR DIRETO E APENAS NO SUPABASE
-            for id_item in lista_ids:
-                try:
-                    # Buscamos a linha do item para ter os dados completos
-                    row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
-                    # Chamamos a função de sincronia que já testamos e deu certo
-                    salvar_no_supabase(id_item, novo_status, row)
-                except Exception as e_item:
-                    st.error(f"Erro no item {id_item}: {e_item}")
-                    continue
-            
-            # 2. LIMPAR O CACHE PARA O APP MOSTRAR O NOVO STATUS NA TELA
-            st.cache_data.clear()
-            st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
-            
-        except Exception as e:
-            st.error(f"Erro geral: {e}")
-        
-        # 2. Atualiza no Supabase
-        for id_item in lista_ids:
-            try:
-                row = df_referencia[df_referencia['ID_Item'] == id_item].iloc[0]
-                salvar_no_supabase(id_item, novo_status, row)
-            except: 
-                continue
-        st.cache_data.clear()
-
+   
     # --- MENU LATERAL ---
     if os.path.exists("Status Apresentação.png"):
         st.sidebar.image("Status Apresentação.png", use_container_width=True)
