@@ -211,24 +211,25 @@ if login():
 
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         try:
-            # 1. LER OS DADOS MAIS RECENTES
-            sheet_url = "https://docs.google.com/spreadsheets/d/1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI/edit"
-            sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
-            url_sync = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Pedidos"
-            df_update = pd.read_csv(url_sync)
+            # 1. Autenticação Direta com o Crachá (Secrets)
+            creds = st.secrets["gcp_service_account"]
+            gc = gspread.service_account_from_dict(creds)
             
-            # 2. MUDAR O STATUS
-            df_update.loc[df_update['ID_Item'].isin(lista_ids), 'Status_Atual'] = novo_status
-            df_update = df_update.drop_duplicates(subset=['ID_Item'], keep='first')
+            # 2. Abrir a Planilha de Teste pelo ID
+            sh = gc.open_by_key("1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI")
+            worksheet = sh.worksheet("Pedidos")
             
-            # 3. GRAVAR (DANDO O ENDEREÇO COMPLETO)
-            conn.update(
-                spreadsheet=sheet_url,
-                worksheet="Pedidos", 
-                data=df_update
-            )
+            # 3. Ler os dados para encontrar as linhas certas
+            data = worksheet.get_all_records()
+            df_update = pd.DataFrame(data)
             
-            # 4. ATUALIZAR SUPABASE
+            # 4. Atualizar o Status na Memória
+            df_update.loc[df_update['ID_Item'].astype(str).isin([str(x) for x in lista_ids]), 'Status_Atual'] = novo_status
+            
+            # 5. Gravar de volta na Planilha (Limpa e Sobrescreve)
+            worksheet.update([df_update.columns.values.tolist()] + df_update.values.tolist())
+            
+            # 6. Atualizar no Supabase (O que já funciona)
             for id_item in lista_ids:
                 try:
                     row = df_referencia[df_referencia['ID_Item'] == id_item].iloc[0]
@@ -236,10 +237,10 @@ if login():
                 except: continue
             
             st.cache_data.clear()
-            st.success("Status atualizado com sucesso!")
+            st.success("Status atualizado no Sheets e Supabase!")
             
         except Exception as e:
-            st.error(f"Erro detalhado: {e}")
+            st.error(f"Erro na gravação direta: {e}")
         
         # 2. Atualiza no Supabase
         for id_item in lista_ids:
