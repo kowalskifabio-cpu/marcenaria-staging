@@ -211,18 +211,29 @@ if login():
 
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         # 1. Atualiza no Sheets
-        df_update = conn.read(worksheet="Pedidos", ttl=0)
-        df_update.loc[df_update['ID_Item'].isin(lista_ids), 'Status_Atual'] = novo_status
-        df_update = df_update.drop_duplicates(subset=['ID_Item'], keep='first')
-        conn.update(worksheet="Pedidos", data=df_update)
+        try:
+            # Usamos o link direto para ler a planilha sem erro de conexão
+            sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
+            url_sync = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Pedidos"
+            df_update = pd.read_csv(url_sync)
+            
+            # Muda o status dos itens selecionados
+            df_update.loc[df_update['ID_Item'].isin(lista_ids), 'Status_Atual'] = novo_status
+            df_update = df_update.drop_duplicates(subset=['ID_Item'], keep='first')
+            
+            # Tenta gravar de volta na planilha
+            conn.update(worksheet="Pedidos", data=df_update)
+        except Exception as e:
+            st.error(f"Erro ao gravar na planilha: {e}")
         
         # 2. Atualiza no Supabase
         for id_item in lista_ids:
             try:
                 row = df_referencia[df_referencia['ID_Item'] == id_item].iloc[0]
                 salvar_no_supabase(id_item, novo_status, row)
-            except: continue
-        st.cache_data.clear() 
+            except: 
+                continue
+        st.cache_data.clear()
 
     # --- MENU LATERAL ---
     if os.path.exists("Status Apresentação.png"):
