@@ -222,7 +222,11 @@ if login():
             df_update = df_update.drop_duplicates(subset=['ID_Item'], keep='first')
             
             # Tenta gravar de volta na planilha
-            conn.update(worksheet="Pedidos", data=df_update)
+            conn.update(
+                spreadsheet="https://docs.google.com/spreadsheets/d/1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI/edit",
+                worksheet="Pedidos", 
+                data=df_update
+            )
         except Exception as e:
             st.error(f"Erro ao gravar na planilha: {e}")
         
