@@ -213,23 +213,27 @@ if login():
         try:
             # 1. Autenticação Direta com o Crachá (Secrets)
             creds = st.secrets["gcp_service_account"]
+            # Criamos o acesso oficial usando as credenciais do JSON que você colou nas Secrets
             gc = gspread.service_account_from_dict(creds)
             
-            # 2. Abrir a Planilha de Teste pelo ID
+            # 2. Abrir a Planilha de Teste pelo ID (Direto ao ponto)
             sh = gc.open_by_key("1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI")
             worksheet = sh.worksheet("Pedidos")
             
-            # 3. Ler os dados para encontrar as linhas certas
+            # 3. Ler os dados atuais
             data = worksheet.get_all_records()
             df_update = pd.DataFrame(data)
             
             # 4. Atualizar o Status na Memória
-            df_update.loc[df_update['ID_Item'].astype(str).isin([str(x) for x in lista_ids]), 'Status_Atual'] = novo_status
+            # Garantimos que os IDs sejam tratados como texto para não dar erro
+            lista_str = [str(x) for x in lista_ids]
+            df_update.loc[df_update['ID_Item'].astype(str).isin(lista_str), 'Status_Atual'] = novo_status
             
-            # 5. Gravar de volta na Planilha (Limpa e Sobrescreve)
+            # 5. Gravar de volta na Planilha (Limpa e Sobrescreve com os novos dados)
+            # Este comando é o "trator" que resolve o problema da escrita
             worksheet.update([df_update.columns.values.tolist()] + df_update.values.tolist())
             
-            # 6. Atualizar no Supabase (O que já funciona)
+            # 6. Atualizar no Supabase (O que já está funcionando perfeitamente)
             for id_item in lista_ids:
                 try:
                     row = df_referencia[df_referencia['ID_Item'] == id_item].iloc[0]
@@ -240,7 +244,7 @@ if login():
             st.success("Status atualizado no Sheets e Supabase!")
             
         except Exception as e:
-            st.error(f"Erro na gravação direta: {e}")
+            st.error(f"Erro na gravação direta (gspread): {e}")
         
         # 2. Atualiza no Supabase
         for id_item in lista_ids:
