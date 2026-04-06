@@ -120,8 +120,9 @@ def login():
                     st.rerun()
                 else:
                     try:
-                        temp_conn = st.connection("gsheets", type=GSheetsConnection)
-                        df_users = temp_conn.read(worksheet="Usuarios", ttl="10m")
+                        sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
+                        url_users = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Usuarios"
+                        df_users = pd.read_csv(url_users)
                         df_users['Usuario'] = df_users['Usuario'].astype(str).str.strip()
                         df_users['Senha'] = df_users['Senha'].astype(str).str.strip()
                         user_match = df_users[(df_users['Usuario'] == user) & (df_users['Senha'] == password)]
