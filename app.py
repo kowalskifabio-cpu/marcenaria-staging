@@ -186,7 +186,7 @@ if login():
                 "quantidade": qtd_final,
                 "unidade": str(row_dados.get('Unidade', 'un'))
             })
-        supabase.table("pedidos").upsert(payload).execute()
+            supabase.table("pedidos").upsert(payload).execute()
     except Exception as e: 
         st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
