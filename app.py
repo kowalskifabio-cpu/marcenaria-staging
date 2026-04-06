@@ -165,24 +165,31 @@ if login():
 
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
     def salvar_no_supabase(id_item, novo_status, row_dados=None):
-        """Atualiza a tabela principal de pedidos no Supabase"""
-        try:
-            payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
-            if row_dados is not None:
-                payload.update({
-                    "ctr": str(row_dados['CTR']),
-                    "obra": str(row_dados.get('Obra', '')),
-                    "item_projeto": str(row_dados.get('Item', '')),
-                    "pedido": str(row_dados['Pedido']),
-                    "dono": str(row_dados['Dono']),
-                    "data_entrega": str(row_dados['Data_Entrega']) if pd.notnull(row_dados['Data_Entrega']) else None,
-                    "quantidade": float(row_dados.get('Quantidade', 0)) if pd.notnull(row_dados.get('Quantidade', 0)) else 0,
-                    "unidade": str(row_dados.get('Unidade', 'un'))
-                })
-            supabase.table("pedidos").upsert(payload).execute()
-        except Exception as e: 
-            st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
+    """Atualiza a tabela principal de pedidos no Supabase"""
+    try:
+        payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
+        if row_dados is not None:
+            # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
+            qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
+            try:
+                qtd_final = float(qtd_limpa)
+            except:
+                qtd_final = 0.0
 
+            payload.update({
+                "ctr": str(row_dados['CTR']),
+                "obra": str(row_dados.get('Obra', '')),
+                "item_projeto": str(row_dados.get('Item', '')),
+                "pedido": str(row_dados['Pedido']),
+                "dono": str(row_dados['Dono']),
+                "data_entrega": str(row_dados['Data_Entrega']) if pd.notnull(row_dados['Data_Entrega']) else None,
+                "quantidade": qtd_final, # Agora com ponto em vez de vírgula
+                "unidade": str(row_dados.get('Unidade', 'un'))
+            })
+        supabase.table("pedidos").upsert(payload).execute()
+    except Exception as e: 
+        st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
+        
     def log_auditoria_supabase(log_dict):
         """Registra alteração na tabela de auditoria do Supabase"""
         try:
