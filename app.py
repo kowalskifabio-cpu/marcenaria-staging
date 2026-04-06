@@ -168,7 +168,7 @@ if login():
         """Atualiza a tabela principal de pedidos no Supabase"""
         try:
             payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
-        if row_dados is not None:
+            if row_dados is not None:
             # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
             qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
             try:
