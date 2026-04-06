@@ -210,13 +210,14 @@ if login():
             pass
 
    def atualizar_status_lote(lista_ids, novo_status, df_referencia):
+        """Atualiza o status apenas no Supabase, ignorando o erro do Google Sheets"""
         try:
             # 1. GRAVAR DIRETO E APENAS NO SUPABASE
             for id_item in lista_ids:
                 try:
-                    # Buscamos a linha do item para ter os dados completos (CTR, Obra, etc)
+                    # Buscamos a linha do item para ter os dados completos
                     row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
-                    # Chamamos a função de sincronia que já testamos e deu certo antes
+                    # Chamamos a função de sincronia que já testamos e deu certo
                     salvar_no_supabase(id_item, novo_status, row)
                 except Exception as e_item:
                     st.error(f"Erro no item {id_item}: {e_item}")
