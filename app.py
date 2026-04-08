@@ -223,22 +223,25 @@ if login():
                 st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
     def log_auditoria_supabase(log_dict):
-        """Registra alteração na tabela de auditoria do Supabase"""
-        try:
-            # Note o uso das chaves com letras Maiúsculas para casar com o SQL blindado
-            payload = {
-                "Data": str(log_dict.get('Data', '')),
-                "Pedido": str(log_dict.get('Pedido', '')),
-                "Usuario": str(log_dict.get('Usuario', '')),
-                "O que mudou": str(log_dict.get('O que mudou', '')),
-                "Impacto no Prazo": str(log_dict.get('Impacto no Prazo', '')),
-                "Impacto Financeiro": str(log_dict.get('Impacto Financeiro', '')),
-                "CTR": str(log_dict.get('CTR', '')),
-                "Dono": str(log_dict.get('Dono', ''))
-            }
-            supabase.table("alteracoes").insert(payload).execute()
-        except Exception as e:
-            pass
+    """Registra alteração na tabela de auditoria do Supabase"""
+    try:
+        # Mapeamos as chaves para letras minúsculas conforme o SQL da tabela 'auditoria'
+        payload = {
+            "data": str(log_dict.get('Data', '')),
+            "pedido": str(log_dict.get('Pedido', '')),
+            "usuario": str(log_dict.get('Usuario', '')), # Quem altera
+            "o_que_mudou": str(log_dict.get('O que mudou', '')),
+            "impacto_no_prazo": str(log_dict.get('Impacto no Prazo', '')),
+            "impacto_financeiro": str(log_dict.get('Impacto Financeiro', '')),
+            "ctr": str(log_dict.get('CTR', '')),
+            "dono": str(log_dict.get('Dono', ''))       # Gestor/Dono do pedido
+        }
+        # CORREÇÃO: Mudamos de .table("alteracoes") para .table("auditoria")
+        supabase.table("auditoria").insert(payload).execute()
+    except Exception as e:
+        # Opcional: st.error(f"Erro log: {e}") para depuração
+        pass
+        
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
         try:
