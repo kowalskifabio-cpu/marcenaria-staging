@@ -150,15 +150,31 @@ def login():
 if login():
     conn = st.connection("gsheets", type=GSheetsConnection)
     
-    @st.cache_data(ttl=15)
+    @st.cache_data(ttl=10) # Reduzi para 10 segundos para ser mais rápido
     def load_pedidos():
-        # Caminho direto via Pandas para evitar o erro de HTTP da biblioteca
+        # 1. Lê a Planilha (Base original)
         sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Pedidos"
         df = pd.read_csv(url)
-    
         df = df.dropna(subset=['ID_Item'])
         df['ID_Item'] = df['ID_Item'].astype(str).str.strip()
+        
+        # 2. Lê o Supabase (A verdade atualizada)
+        try:
+            res = supabase.table("pedidos").select("id_item, status_atual").execute()
+            if res.data:
+                df_supa = pd.DataFrame(res.data)
+                df_supa['id_item'] = df_supa['id_item'].astype(str).str.strip()
+                
+                # Criamos um "dicionário" de status novos
+                status_map = dict(zip(df_supa['id_item'], df_supa['status_atual']))
+                
+                # Substituímos o status da planilha pelo status do Supabase
+                df['Status_Atual'] = df['ID_Item'].map(status_map).fillna(df['Status_Atual'])
+        except Exception as e:
+            st.warning(f"Nota: Usando apenas dados da planilha (Supabase offline: {e})")
+
+        # 3. Limpeza e Ordenação
         df['sort_num'] = df['Item'].apply(extrair_numero_item)
         return df.drop_duplicates(subset=['ID_Item'], keep='first')
         
