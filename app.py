@@ -906,7 +906,9 @@ if login():
             st.subheader("3. Alterações (2.500+)")
             if st.button("🚨 SINCRONIZAR LOGS"):
                 with st.spinner("Migrando auditoria..."):
-                    df_aud_full = conn.read(worksheet="Alteracoes", ttl=0)
+                    sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
+                    url_logs = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Alteracoes"
+                    df_aud_full = pd.read_csv(url_logs)
                     prog_a = st.progress(0)
                     lote = []
                     for i, row in df_aud_full.iterrows():
