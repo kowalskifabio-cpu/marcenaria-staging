@@ -542,7 +542,7 @@ if login():
 
         except Exception as e: st.error(f"Erro no monitor: {e}")
 
-    # --- RESGATE DE ITENS CONCLUÍDOS (VERSÃO SUPABASE) ---
+    # --- RESGATE DE ITENS CONCLUÍDOS (VERSÃO SUPABASE - SEM TELA BRANCA) ---
         with st.expander("⏪ Resgatar Item do Histórico (Concluídos)"):
             if df_concluidos_global.empty:
                 st.info("Não há histórico de itens concluídos.")
@@ -561,22 +561,21 @@ if login():
                             st.warning("Informe o motivo.")
                         else:
                             try:
-                                # 1. Mover item APENAS no Supabase (A verdade absoluta)
                                 row_resgate = itens_hist[itens_hist['ID_Item'] == item_resgate].iloc[0]
                                 novo_status = "⚠️ Em Retrabalho"
                                 
-                                # 2. Logs de Auditoria
+                                # Log no Supabase
                                 log_res = {
                                     "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
-                                    "Pedido": row_resgate['Pedido'], 
+                                    "Pedido": str(row_resgate['Pedido']), 
                                     "Usuario": st.session_state.user_display, 
-                                    "Dono": row_resgate['Dono'],
+                                    "Dono": str(row_resgate['Dono']),
                                     "O que mudou": f"REABERTURA PÓS-CONCLUÍDO: {motivo_resgate}", 
-                                    "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": ctr_hist
+                                    "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": str(ctr_hist)
                                 }
                                 log_auditoria_supabase(log_res)
                                 
-                                # 3. Sincronia Supabase Status (Isso remove do histórico e volta pro monitor)
+                                # Atualiza Status no Banco
                                 salvar_no_supabase(item_resgate, novo_status, row_resgate)
                                 
                                 st.success("Item resgatado com sucesso no Banco de Dados!")
@@ -588,16 +587,20 @@ if login():
 
         st.divider()
         
-        # --- GESTÃO DE QUEM JÁ ESTÁ EM RETRABALHO (VERSÃO SUPABASE) ---
+        # --- GESTÃO DE QUEM JÁ ESTÁ EM RETRABALHO (SEGURO) ---
+        # Filtramos do df_global quem o Supabase já marcou como Retrabalho
         df_ret = df_global[df_global['Status_Atual'] == "⚠️ Em Retrabalho"]
+        
         if df_ret.empty:
-            st.success("Nenhum item em retrabalho no momento.")
+            st.success("✅ Nenhum item em retrabalho no momento.")
         else:
             ctrs_ret = [""] + sorted(df_ret['CTR'].unique().tolist())
             ctr_sel = st.selectbox("Selecione a CTR com retrabalho em andamento:", ctrs_ret)
             if ctr_sel:
                 itens_pend = df_ret[df_ret['CTR'] == ctr_sel]
-                selecionados = st.multiselect("Itens para validar:", options=itens_pend['ID_Item'].tolist(), format_func=lambda x: f"{itens_pend[itens_pend['ID_Item'] == x]['Pedido'].iloc[0]}")
+                selecionados = st.multiselect("Itens para validar:", 
+                                              options=itens_pend['ID_Item'].tolist(), 
+                                              format_func=lambda x: f"{itens_pend[itens_pend['ID_Item'] == x]['Pedido'].iloc[0]}")
                 if selecionados:
                     with st.form("form_retrabalho"):
                         st.markdown("#### ✅ Checklist de Qualidade")
@@ -608,21 +611,23 @@ if login():
                         proximo_gate = st.selectbox("Retornar para qual portão?", ["Aguardando Produção (G3)", "Aguardando Entrega (G4)"])
                         
                         if st.form_submit_button("CONCLUIR RETRABALHO 🛠️"):
-                            if not all([c1, c2, c3]): st.error("Valide todo o checklist.")
+                            if not all([c1, c2, c3]): 
+                                st.error("Valide todo o checklist.")
                             else:
-                                # Grava Checklist e Status APENAS no Supabase
-                                for i in selecionados:
-                                    try:
+                                try:
+                                    for i in selecionados:
                                         supabase.table("checklists_gates").insert({
-                                            "gate": "RETRABALHO", "id_item": i, "validado_por": st.session_state.user_display, "obs": obs_ret,
+                                            "gate": "RETRABALHO", "id_item": str(i), 
+                                            "validado_por": st.session_state.user_display, "obs": obs_ret,
                                             "respostas": {"Dano_Identificado": c1, "Material_Solicitado": c2, "Prioridade_PCP": c3}
                                         }).execute()
-                                    except: pass
-                                
-                                atualizar_status_lote(selecionados, proximo_gate, df_ret)
-                                st.success("Itens reintroduzidos no fluxo via Banco de Dados!")
-                                time.sleep(1)
-                                st.rerun()
+                                    
+                                    atualizar_status_lote(selecionados, proximo_gate, df_ret)
+                                    st.success("Itens reintroduzidos no fluxo!")
+                                    time.sleep(1)
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao concluir retrabalho: {e}")
 
     # --- ABA: CENTRAL DE RELATÓRIOS (NOVO) ---
     elif menu == "📋 Central de Relatórios":
