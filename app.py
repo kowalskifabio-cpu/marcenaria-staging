@@ -161,18 +161,24 @@ if login():
         
         # 2. Lê o Supabase (A verdade atualizada)
         try:
-            res = supabase.table("pedidos").select("id_item, status_atual").execute()
+            # BUSCAMOS TAMBÉM DONO E DATA_ENTREGA
+            res = supabase.table("pedidos").select("id_item, status_atual, dono, data_entrega").execute()
             if res.data:
                 df_supa = pd.DataFrame(res.data)
                 df_supa['id_item'] = df_supa['id_item'].astype(str).str.strip()
                 
-                # Criamos um "dicionário" de status novos
+                # Criamos mapas para cada informação que o Supabase deve "mandar"
                 status_map = dict(zip(df_supa['id_item'], df_supa['status_atual']))
+                dono_map = dict(zip(df_supa['id_item'], df_supa['dono']))
+                data_map = dict(zip(df_supa['id_item'], df_supa['data_entrega']))
                 
-                # Substituímos o status da planilha pelo status do Supabase
+                # SUBSTITUIÇÃO COM PRIORIDADE AO SUPABASE
                 df['Status_Atual'] = df['ID_Item'].map(status_map).fillna(df['Status_Atual'])
+                df['Dono'] = df['ID_Item'].map(dono_map).fillna(df['Dono'])
+                df['Data_Entrega'] = df['ID_Item'].map(data_map).fillna(df['Data_Entrega'])
+                
         except Exception as e:
-            st.warning(f"Nota: Usando apenas dados da planilha (Supabase offline: {e})")
+            st.warning(f"Nota: Usando dados da planilha (Alguns campos podem estar desatualizados: {e})")
 
         # 3. Limpeza e Ordenação
         df['sort_num'] = df['Item'].apply(extrair_numero_item)
