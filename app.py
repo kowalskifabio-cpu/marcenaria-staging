@@ -824,70 +824,56 @@ if login():
             st.error(f"Erro ao carregar auditoria: {e}")
 
     elif menu == "⚠️ Alteração de Pedido":
-        st.header("🔄 Alteração de Pedido em Lote (Supabase)")
+        st.header("🔄 Alteração de Pedido em Lote")
         if papel_usuario not in ["Gerência Geral", "PCP"]: 
             st.error("Acesso negado.")
         else:
-            try:
-                df_p = df_global.copy()
-                df_p['Data_Entrega_Str'] = pd.to_datetime(df_p['Data_Entrega'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
-                ctr_lista = [""] + sorted(df_p['CTR'].unique().tolist())
-                ctr_sel = st.selectbox("Selecione a CTR", ctr_lista, key="ctr_alt_lote_final")
+            df_p = df_global.copy()
+            ctr_lista = [""] + sorted(df_p['CTR'].unique().tolist())
+            ctr_sel = st.selectbox("Selecione a CTR", ctr_lista)
+            
+            if ctr_sel:
+                itens_ctr = df_p[df_p['CTR'] == ctr_sel]
+                selecionados = st.multiselect("Itens:", options=itens_ctr['ID_Item'].tolist(), 
+                                              format_func=lambda x: f"{itens_ctr[itens_ctr['ID_Item'] == x]['Pedido'].iloc[0]}")
                 
-                if ctr_sel:
-                    itens_ctr = df_p[df_p['CTR'] == ctr_sel]
-                    selecionados = st.multiselect("Itens para alterar:", options=itens_ctr['ID_Item'].tolist(), 
-                                                  format_func=lambda x: f"{itens_ctr[itens_ctr['ID_Item'] == x]['Pedido'].iloc[0]}")
-                    
-                    if selecionados:
-                        with st.form("form_lote_completo", clear_on_submit=True):
-                            c1, c2 = st.columns(2)
-                            gestor_at = itens_ctr[itens_ctr['ID_Item'] == selecionados[0]]['Dono'].iloc[0]
-                            novo_gestor = c1.text_input("Novo Gestor", value=gestor_at)
-                            nova_data = c2.date_input("Nova Data de Entrega")
-                            
-                            st.markdown("---")
-                            col_imp1, col_imp2 = st.columns(2)
-                            imp_prazo = col_imp1.radio("Impacto no Prazo?", ["Não", "Sim"], horizontal=True)
-                            imp_finan = col_imp2.radio("Impacto Financeiro?", ["Não", "Sim"], horizontal=True)
-                            
-                            motivo = st.text_area("Motivo Detalhado da Alteração")
-                            
-                            btn_lote = st.form_submit_button("APLICAR ALTERAÇÕES 🚀")
-                            
-                            if btn_lote:
-                                if not motivo:
-                                    st.error("❌ O motivo é obrigatório para auditoria!")
-                                else:
-                                    progresso = st.progress(0)
-                                    for i, id_item in enumerate(selecionados):
-                                        # 1. Update no Banco (Pedidos)
-                                        supabase.table("pedidos").update({
-                                            "dono": novo_gestor, 
-                                            "data_entrega": str(nova_data)
-                                        }).eq("id_item", id_item).execute()
-                                        
-                                        # 2. Envio do Log Completo
-                                        item_info = itens_ctr[itens_ctr['ID_Item'] == id_item].iloc[0]
-                                        log_entry = {
-                                            "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                                            "pedido": str(item_info['Pedido']),
-                                            "usuario": st.session_state.user_display,
-                                            "o_que_mudou": f"LOTE: Data {nova_data}. Motivo: {motivo}",
-                                            "impacto_no_prazo": imp_prazo,
-                                            "impacto_financeiro": imp_finan,
-                                            "ctr": str(ctr_sel),
-                                            "dono": str(novo_gestor)
-                                        }
-                                        log_auditoria_supabase(log_entry)
-                                        progresso.progress((i + 1) / len(selecionados))
+                if selecionados:
+                    with st.form("form_lote_definitivo"):
+                        c1, c2 = st.columns(2)
+                        gestor_at = itens_ctr[itens_ctr['ID_Item'] == selecionados[0]]['Dono'].iloc[0]
+                        novo_gestor = c1.text_input("Novo Gestor", value=gestor_at)
+                        nova_data = c2.date_input("Nova Data")
+                        
+                        st.write("---")
+                        ci1, ci2 = st.columns(2)
+                        imp_p = ci1.radio("Impacto Prazo?", ["Não", "Sim"], horizontal=True)
+                        imp_f = ci2.radio("Impacto Financeiro?", ["Não", "Sim"], horizontal=True)
+                        motivo = st.text_area("Motivo da Alteração")
+                        
+                        if st.form_submit_button("APLICAR ALTERAÇÕES 🚀"):
+                            if not motivo:
+                                st.error("Diga o motivo!")
+                            else:
+                                for id_item in selecionados:
+                                    # Update no Pedido
+                                    supabase.table("pedidos").update({"dono": novo_gestor, "data_entrega": str(nova_data)}).eq("id_item", id_item).execute()
                                     
-                                    st.success(f"✅ Sucesso! {len(selecionados)} itens atualizados.")
-                                    st.cache_data.clear()
-                                    time.sleep(2) # Pausa para você ver a mensagem antes do reset
-                                    st.rerun()
-            except Exception as e:
-                st.error(f"Erro crítico: {e}")
+                                    # Log de Auditoria
+                                    info = itens_ctr[itens_ctr['ID_Item'] == id_item].iloc[0]
+                                    log_auditoria_supabase({
+                                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                        "pedido": str(info['Pedido']),
+                                        "usuario": st.session_state.user_display,
+                                        "o_que_mudou": f"LOTE: Data {nova_data}. Motivo: {motivo}",
+                                        "impacto_no_prazo": imp_p,
+                                        "impacto_financeiro": imp_f,
+                                        "ctr": str(ctr_sel),
+                                        "dono": str(novo_gestor)
+                                    })
+                                st.success("✅ Alterações gravadas! Verifique a Auditoria.")
+                                st.cache_data.clear()
+                                # Removido o rerun automático para a mensagem não sumir. 
+                                # O usuário pode mudar de aba ou clicar em atualizar.
                 
     elif menu == "📥 Importar Itens (Sistema)":
         st.header("📥 Importar Itens da Marcenaria")
