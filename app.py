@@ -223,22 +223,22 @@ if login():
                 st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
     def log_auditoria_supabase(log_dict):
-    """Registra alteração na tabela de auditoria do Supabase"""
-    try:
-        # Padronização total: procuramos chaves em minúsculo
-        payload = {
-            "data": str(log_dict.get('data', '')),
-            "pedido": str(log_dict.get('pedido', '')),
-            "usuario": str(log_dict.get('usuario', '')), 
-            "o_que_mudou": str(log_dict.get('o_que_mudou', '')),
-            "impacto_no_prazo": str(log_dict.get('impacto_no_prazo', '')),
-            "impacto_financeiro": str(log_dict.get('impacto_financeiro', '')),
-            "ctr": str(log_dict.get('ctr', '')),
-            "dono": str(log_dict.get('dono', ''))
-        }
-        supabase.table("auditoria").insert(payload).execute()
-    except Exception as e:
-        st.error(f"Erro técnico no Log: {e}")
+        """Registra alteração na tabela de auditoria do Supabase"""
+        try:
+            # Padronização total: procuramos chaves em minúsculo
+            payload = {
+                "data": str(log_dict.get('data', '')),
+                "pedido": str(log_dict.get('pedido', '')),
+                "usuario": str(log_dict.get('usuario', '')), 
+                "o_que_mudou": str(log_dict.get('o_que_mudou', '')),
+                "impacto_no_prazo": str(log_dict.get('impacto_no_prazo', '')),
+                "impacto_financeiro": str(log_dict.get('impacto_financeiro', '')),
+                "ctr": str(log_dict.get('ctr', '')),
+                "dono": str(log_dict.get('dono', ''))
+            }
+            supabase.table("auditoria").insert(payload).execute()
+        except Exception as e:
+            st.error(f"Erro técnico no Log: {e}")
         
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
