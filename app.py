@@ -823,75 +823,14 @@ if login():
         except Exception as e:
             st.error(f"Erro ao carregar auditoria: {e}")
 
-    elif menu == "⚠️ Alteração de Pedido":
+   elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote (Supabase)")
         if papel_usuario not in ["Gerência Geral", "PCP"]: 
             st.error("Acesso negado.")
         else:
             try:
+                # Usamos o df_global que já está sincronizado com o Banco
                 df_p = df_global.copy()
-                df_p['Data_Entrega_Str'] = pd.to_datetime(df_p['Data_Entrega'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
-                
-                ctr_lista = [""] + sorted(df_p['CTR'].unique().tolist())
-                ctr_sel = st.selectbox("Selecione a CTR para Alteração", ctr_lista, key="ctr_alteracao")
-                
-                if ctr_sel:
-                    itens_da_ctr = df_p[df_p['CTR'] == ctr_sel]
-                    selecionados = st.multiselect("Selecione os itens:", options=itens_da_ctr['ID_Item'].tolist(), 
-                                                  format_func=lambda x: f"{itens_da_ctr[itens_da_ctr['ID_Item'] == x]['Pedido'].iloc[0]}", 
-                                                  default=itens_da_ctr['ID_Item'].tolist())
-                    
-                    if selecionados:
-                        with st.form("form_alteracao_lote"):
-                            col1, col2 = st.columns(2)
-                            item_ref = itens_da_ctr[itens_da_ctr['ID_Item'] == selecionados[0]]
-                            gestor_atual = item_ref['Dono'].iloc[0]
-                            data_at = item_ref['Data_Entrega_Str'].iloc[0]
-                            
-                            novo_gestor = col1.text_input("Novo Gestor", value=gestor_atual)
-                            try: data_sug = datetime.strptime(data_at, '%Y-%m-%d').date() if data_at else date.today()
-                            except: data_sug = date.today()
-                            nova_data = col2.date_input("Nova Data", value=data_sug)
-                            
-                            st.markdown("#### ⚖️ Impactos da Alteração")
-                            c_imp1, c_imp2 = st.columns(2)
-                            imp_prazo = c_imp1.radio("Impacto no Prazo?", ["Não", "Sim"], horizontal=True)
-                            imp_financeiro = c_imp2.radio("Impacto Financeiro?", ["Não", "Sim"], horizontal=True)
-                            motivo_alt = st.text_area("Motivo da Alteração")
-                            
-                            if st.form_submit_button("APLICAR ALTERAÇÕES EM LOTE 🚀"):
-                                if not motivo_alt: st.error("❌ Descreva o motivo")
-                                else:
-                                    try:
-                                        for id_item in selecionados:
-                                            supabase.table("pedidos").update({
-                                                "dono": novo_gestor,
-                                                "data_entrega": nova_data.strftime('%Y-%m-%d')
-                                            }).eq("id_item", id_item).execute()
-                                            
-                                            item_info = itens_da_ctr[itens_da_ctr['ID_Item'] == id_item].iloc[0]
-                                            log_auditoria_supabase({
-                                                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
-                                                "Pedido": str(item_info['Pedido']), "CTR": str(ctr_sel), 
-                                                "Usuario": st.session_state.user_display, "Dono": novo_gestor,
-                                                "O que mudou": f"LOTE: Data {nova_data}. Motivo: {motivo_alt}", 
-                                                "Impacto no Prazo": imp_prazo, "Impacto Financeiro": imp_financeiro
-                                            })
-                                        st.success(f"✅ {len(selecionados)} itens atualizados!")
-                                        st.cache_data.clear()
-                                        disparar_foguete(); time.sleep(1.5); st.rerun()
-                                    except Exception as e: st.error(f"Erro: {e}")
-            except Exception as e: st.error(f"Erro ao carregar dados: {e}")
-    elif menu == "⚠️ Alteração de Pedido":
-        st.header("🔄 Alteração de Pedido em Lote (Supabase)")
-        if papel_usuario not in ["Gerência Geral", "PCP"]: 
-            st.error("Acesso negado.")
-        else:
-            try:
-                # Usamos o df_global que já está sincronizado
-                df_p = df_global.copy()
-                
-                # Formata a data para exibição no seletor
                 df_p['Data_Entrega_Str'] = pd.to_datetime(df_p['Data_Entrega'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
                 
                 ctr_lista = [""] + sorted(df_p['CTR'].unique().tolist())
@@ -908,7 +847,7 @@ if login():
                         with st.form("form_alteracao_lote"):
                             col1, col2 = st.columns(2)
                             
-                            # Busca gestor e data atuais do primeiro item selecionado para sugestão
+                            # Busca gestor e data do primeiro item como sugestão
                             item_ref = itens_da_ctr[itens_da_ctr['ID_Item'] == selecionados[0]]
                             gestor_atual = item_ref['Dono'].iloc[0]
                             data_at = item_ref['Data_Entrega_Str'].iloc[0]
@@ -933,35 +872,34 @@ if login():
                                     st.error("❌ Descreva o motivo")
                                 else:
                                     try:
-                                        # --- ATUALIZAÇÃO NO SUPABASE ---
                                         for id_item in selecionados:
-                                            # Atualiza 'dono' (nome correto no banco) e data
+                                            # 1. Atualiza no Supabase (coluna 'dono' em minúsculo)
                                             supabase.table("pedidos").update({
                                                 "dono": novo_gestor,
                                                 "data_entrega": nova_data.strftime('%Y-%m-%d')
                                             }).eq("id_item", id_item).execute()
                                             
-                                            # Registro de Auditoria
+                                            # 2. Gera o Log com a chave 'Dono' (Maiúsculo) para a função
                                             item_info = itens_da_ctr[itens_da_ctr['ID_Item'] == id_item].iloc[0]
                                             log_entry = {
                                                 "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
                                                 "Pedido": str(item_info['Pedido']), 
                                                 "CTR": str(ctr_sel), 
                                                 "Usuario": st.session_state.user_display, 
-                                                "Dono": novo_gestor,
+                                                "Dono": str(novo_gestor),
                                                 "O que mudou": f"LOTE: Data {nova_data} / Gestor {novo_gestor}. Motivo: {motivo_alt}", 
                                                 "Impacto no Prazo": imp_prazo, 
                                                 "Impacto Financeiro": imp_financeiro
                                             }
                                             log_auditoria_supabase(log_entry)
                                         
-                                        st.success(f"✅ {len(selecionados)} itens atualizados com sucesso!")
+                                        st.success("✅ Alterações aplicadas e registradas na auditoria!")
                                         st.cache_data.clear()
                                         disparar_foguete()
                                         time.sleep(1.5)
                                         st.rerun()
                                     except Exception as e:
-                                        st.error(f"Erro ao salvar no Banco de Dados: {e}")
+                                        st.error(f"Erro ao processar lote: {e}")
             except Exception as e: 
                 st.error(f"Erro ao carregar dados: {e}")
 
