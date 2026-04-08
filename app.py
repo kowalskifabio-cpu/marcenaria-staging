@@ -542,10 +542,7 @@ if login():
 
         except Exception as e: st.error(f"Erro no monitor: {e}")
 
-    elif menu == "🛠️ Portão de Retrabalho":
-        st.header("🛠️ Gestão de Retrabalho")
-        
-        # --- RESGATE DE ITENS CONCLUÍDOS ---
+    # --- RESGATE DE ITENS CONCLUÍDOS (VERSÃO SUPABASE) ---
         with st.expander("⏪ Resgatar Item do Histórico (Concluídos)"):
             if df_concluidos_global.empty:
                 st.info("Não há histórico de itens concluídos.")
@@ -563,42 +560,31 @@ if login():
                         if not motivo_resgate:
                             st.warning("Informe o motivo.")
                         else:
-                            # 1. Carregar bases atuais
-                            df_pedidos_atual = conn.read(worksheet="Pedidos", ttl=0)
-                            df_hist_atual = conn.read(worksheet="Pedidos_Concluidos", ttl=0)
-                            
-                            # 2. Mover item
-                            row_resgate = df_hist_atual[df_hist_atual['ID_Item'] == item_resgate].copy()
-                            row_resgate['Status_Atual'] = "⚠️ Em Retrabalho"
-                            for col in ["Data_Finalizacao", "Performance"]:
-                                if col in row_resgate.columns: row_resgate[col] = None
+                            try:
+                                # 1. Mover item APENAS no Supabase (A verdade absoluta)
+                                row_resgate = itens_hist[itens_hist['ID_Item'] == item_resgate].iloc[0]
+                                novo_status = "⚠️ Em Retrabalho"
                                 
-                            # 3. Atualizar Planilhas
-                            df_novo_pedidos = pd.concat([df_pedidos_atual, row_resgate], ignore_index=True)
-                            df_novo_hist = df_hist_atual[df_hist_atual['ID_Item'] != item_resgate]
-                            conn.update(worksheet="Pedidos", data=df_novo_pedidos)
-                            conn.update(worksheet="Pedidos_Concluidos", data=df_novo_hist)
-                            
-                            # 4. Logs (Sheets + Supabase)
-                            log_res = {
-                                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
-                                "Pedido": row_resgate['Pedido'].iloc[0], 
-                                "Usuario": st.session_state.user_display, 
-                                "Dono": row_resgate['Dono'].iloc[0],
-                                "O que mudou": f"REABERTURA PÓS-CONCLUÍDO: {motivo_resgate}", 
-                                "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": ctr_hist
-                            }
-                            df_alt = conn.read(worksheet="Alteracoes", ttl=0)
-                            conn.update(worksheet="Alteracoes", data=pd.concat([df_alt, pd.DataFrame([log_res])], ignore_index=True))
-                            log_auditoria_supabase(log_res)
-                            
-                            # 5. Sincronia Supabase Status
-                            salvar_no_supabase(item_resgate, "⚠️ Em Retrabalho", row_resgate.iloc[0])
-                            
-                            st.success("Item resgatado com sucesso!")
-                            st.cache_data.clear()
-                            time.sleep(1)
-                            st.rerun()
+                                # 2. Logs de Auditoria
+                                log_res = {
+                                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
+                                    "Pedido": row_resgate['Pedido'], 
+                                    "Usuario": st.session_state.user_display, 
+                                    "Dono": row_resgate['Dono'],
+                                    "O que mudou": f"REABERTURA PÓS-CONCLUÍDO: {motivo_resgate}", 
+                                    "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": ctr_hist
+                                }
+                                log_auditoria_supabase(log_res)
+                                
+                                # 3. Sincronia Supabase Status (Isso remove do histórico e volta pro monitor)
+                                salvar_no_supabase(item_resgate, novo_status, row_resgate)
+                                
+                                st.success("Item resgatado com sucesso no Banco de Dados!")
+                                st.cache_data.clear()
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao resgatar: {e}")
 
         st.divider()
         
