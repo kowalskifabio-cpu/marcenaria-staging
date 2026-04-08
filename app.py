@@ -334,14 +334,14 @@ if login():
                             time.sleep(1.5)
                             st.rerun()
 
-    # --- FUNÇÃO DE CHECKLIST (GATES) ---
+   # --- FUNÇÃO DE CHECKLIST (GATES) - VERSÃO BLINDADA ---
     def checklist_gate(gate_id, aba, itens_checklist, responsavel_r, executor_e, msg_bloqueio, proximo_status, objetivo, momento, df_p):
         st.header(f"Ficha de Controle: {gate_id}")
         st.markdown(f"**Objetivo:** {objetivo} | **Momento:** {momento}")
         st.info(f"⚖️ **R:** {responsavel_r} | 🔨 **E:** {executor_e}")
         
         try:
-            # Lógica de status requerida ajustada para a inversão solicitada
+            # Lógica de status requerida
             status_requerido = "Aguardando Materiais (G1)" if gate_id == "GATE 1 (MAT)" else \
                                "Aguardando Aceite Técnico (G2)" if gate_id == "GATE 2 (TEC)" else \
                                "Aguardando Produção (G3)" if gate_id == "GATE 3" else \
@@ -376,29 +376,26 @@ if login():
                         
                         obs = st.text_area("Observações Técnicas")
                         if st.form_submit_button("VALIDAR LOTE SELECIONADO 🚀", disabled=not pode_assinar):
-                            if not all(respostas.values()): st.error(f"❌ BLOQUEIO: {msg_bloqueio}")
+                            if not all(respostas.values()): 
+                                st.error(f"❌ BLOQUEIO: {msg_bloqueio}")
                             else:
-                                # 1. Grava no Sheets
-                                df_gate = conn.read(worksheet=aba, ttl="1m")
-                                novas_linhas = []
-                                logs_auditoria = []
-                                
+                                # 1. Sincronia APENAS via Supabase (Evita o erro de Spreadsheet)
                                 for id_item in selecionados:
                                     dono_item = itens_pendentes[itens_pendentes['ID_Item'] == id_item]['Dono'].iloc[0]
-                                    nova = {"Data": datetime.now().strftime("%d/%m/%Y %H:%M"), "ID_Item": id_item, "Validado_Por": st.session_state.user_display, "Obs": obs}
-                                    nova.update(respostas); novas_linhas.append(nova)
                                     item_nome = itens_pendentes[itens_pendentes['ID_Item'] == id_item]['Pedido'].iloc[0]
                                     
                                     log_entry = {
                                         "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                                        "Pedido": item_nome, "Usuario": st.session_state.user_display,
+                                        "Pedido": item_nome, 
+                                        "Usuario": st.session_state.user_display,
                                         "Dono": dono_item,
                                         "O que mudou": f"AVANÇO: {gate_id} para {proximo_status}. Obs: {obs}",
-                                        "Impacto no Prazo": "Não", "Impacto Financeiro": "Não", "CTR": ctr_sel
+                                        "Impacto no Prazo": "Não", 
+                                        "Impacto Financeiro": "Não", 
+                                        "CTR": ctr_sel
                                     }
-                                    logs_auditoria.append(log_entry)
                                     
-                                    # 2. Sincronia Supabase (Logs e Checklists)
+                                    # Grava Logs e Checklists no Supabase
                                     log_auditoria_supabase(log_entry)
                                     try:
                                         supabase.table("checklists_gates").insert({
@@ -407,16 +404,15 @@ if login():
                                         }).execute()
                                     except: pass
 
-                                conn.update(worksheet=aba, data=pd.concat([df_gate, pd.DataFrame(novas_linhas)], ignore_index=True))
-                                df_alt = conn.read(worksheet="Alteracoes", ttl="1m")
-                                conn.update(worksheet="Alteracoes", data=pd.concat([df_alt, pd.DataFrame(logs_auditoria)], ignore_index=True))
-                                
-                                # 3. Atualiza Status (Sheets + Supabase)
+                                # 2. Atualiza Status Principal no Supabase
                                 atualizar_status_lote(selecionados, proximo_status, df_p)
                                 
-                                st.success(f"🚀 {len(selecionados)} itens validados!")
-                                disparar_foguete(); time.sleep(1); st.rerun()
-        except Exception as e: st.error(f"Erro: {e}")
+                                st.success(f"🚀 {len(selecionados)} itens validados no Banco de Dados!")
+                                disparar_foguete()
+                                time.sleep(1)
+                                st.rerun()
+        except Exception as e: 
+            st.error(f"Erro na Ficha de Controle: {e}")
 
     # --- PÁGINAS DO MONITOR ---
 
