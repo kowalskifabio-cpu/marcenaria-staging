@@ -222,7 +222,7 @@ if login():
         except Exception as e: 
                 st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
-   def log_auditoria_supabase(log_dict):
+def log_auditoria_supabase(log_dict):
     """Registra alteração na tabela de auditoria do Supabase"""
     try:
         # Pega os valores tratando se a chave vem como 'Data' ou 'data'
