@@ -196,13 +196,13 @@ if login():
     df_concluidos_global = load_historico()
 
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
-    def salvar_no_supabase(id_item, novo_status, row_dados=None):
-        """Atualiza a tabela principal de pedidos no Supabase"""
-        try:
-            payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
-            if row_dados is not None:
-                # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
-                qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
+def salvar_no_supabase(id_item, novo_status, row_dados=None):
+    """Atualiza a tabela principal de pedidos no Supabase"""
+    try:
+        payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
+        if row_dados is not None:
+            # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
+            qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
             try:
                 qtd_final = float(qtd_limpa)
             except:
@@ -218,10 +218,10 @@ if login():
                 "quantidade": qtd_final,
                 "unidade": str(row_dados.get('Unidade', 'un'))
             })
-            supabase.table("pedidos").upsert(payload).execute()
-        except Exception as e: 
-                st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
-        
+        supabase.table("pedidos").upsert(payload).execute()
+    except Exception as e: 
+        st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
+
 def log_auditoria_supabase(log_dict):
     """Registra alteração na tabela de auditoria do Supabase"""
     try:
@@ -240,27 +240,27 @@ def log_auditoria_supabase(log_dict):
     except Exception as e:
         # Se der erro no banco, agora ele avisa na tela
         st.error(f"Erro ao salvar log no Supabase: {e}")
+
+def atualizar_status_lote(lista_ids, novo_status, df_referencia):
+    """Atualiza o status apenas no Supabase, ignorando o Sheets"""
+    try:
+        # 1. GRAVAR DIRETO NO SUPABASE
+        for id_item in lista_ids:
+            try:
+                # Buscamos a linha do item para ter os dados completos
+                row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
+                # Chamamos a função de sincronia que já testamos e deu certo
+                salvar_no_supabase(id_item, novo_status, row)
+            except Exception as e_item:
+                st.error(f"Erro no item {id_item}: {e_item}")
+                continue
         
-    def atualizar_status_lote(lista_ids, novo_status, df_referencia):
-        """Atualiza o status apenas no Supabase, ignorando o Sheets"""
-        try:
-            # 1. GRAVAR DIRETO NO SUPABASE
-            for id_item in lista_ids:
-                try:
-                    # Buscamos a linha do item para ter os dados completos
-                    row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
-                    # Chamamos a função de sincronia que já testamos e deu certo
-                    salvar_no_supabase(id_item, novo_status, row)
-                except Exception as e_item:
-                    st.error(f"Erro no item {id_item}: {e_item}")
-                    continue
-            
-            # 2. LIMPAR O CACHE E AVISAR O USUÁRIO
-            st.cache_data.clear()
-            st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
-            
-        except Exception as e:
-            st.error(f"Erro geral: {e}")
+        # 2. LIMPAR O CACHE E AVISAR O USUÁRIO
+        st.cache_data.clear()
+        st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
+        
+    except Exception as e:
+        st.error(f"Erro geral: {e}")
             
     # --- MENU LATERAL ---
     if os.path.exists("Status Apresentação.png"):
