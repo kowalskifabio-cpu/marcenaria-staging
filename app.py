@@ -12,6 +12,9 @@ import io
 # Configuração da Página
 st.set_page_config(page_title="Status - Gestão Integral por Item", layout="wide", page_icon="🏗️")
 
+# ID DA PLANILHA DE TESTE (STAGING)
+SHEET_ID = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
+
 # --- 1. CONEXÕES (HÍBRIDA: SHEETS + SUPABASE) ---
 @st.cache_resource
 def init_supabase():
@@ -23,7 +26,10 @@ def init_supabase():
         return None
 
 supabase = init_supabase()
+
+# Conexão GSheets com o link da planilha já configurado internamente
 conn = st.connection("gsheets", type=GSheetsConnection)
+
 # --- FUNÇÃO DE AUTO-REFRESH (5 MINUTOS) ---
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
@@ -33,7 +39,7 @@ if time.time() - st.session_state.last_refresh > refresh_interval:
     st.session_state.last_refresh = time.time()
     st.rerun()
 
-# --- ESTILIZAÇÃO E ANIMAÇÕES (CSS) ---
+# --- ESTILIZAÇÃO CSS (Mantida original) ---
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -99,7 +105,7 @@ def extrair_numero_item(texto):
     except:
         return 9999
 
-# --- SISTEMA DE LOGIN HÍBRIDO ---
+# --- SISTEMA DE LOGIN ---
 def login():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
@@ -120,12 +126,13 @@ def login():
                     st.rerun()
                 else:
                     try:
-                        sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
-                        url_users = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Usuarios"
+                        # LEITURA BLINDADA DE USUÁRIOS
+                        url_users = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Usuarios"
                         df_users = pd.read_csv(url_users)
                         df_users['Usuario'] = df_users['Usuario'].astype(str).str.strip()
                         df_users['Senha'] = df_users['Senha'].astype(str).str.strip()
                         user_match = df_users[(df_users['Usuario'] == user) & (df_users['Senha'] == password)]
+                        
                         if not user_match.empty:
                             st.session_state.authenticated = True
                             st.session_state.user_role = "USER"
@@ -133,8 +140,10 @@ def login():
                             st.session_state.user_display = nome_na_tabela if pd.notnull(nome_na_tabela) else user
                             st.session_state.papel_real = user_match['Papel'].iloc[0]
                             st.rerun()
-                        else: st.error("Usuário ou senha inválidos")
-                    except Exception as e: st.error(f"Erro ao conectar com tabela de usuários: {e}")
+                        else:
+                            st.error("Usuário ou senha inválidos")
+                    except Exception as e:
+                        st.error(f"Erro ao conectar com tabela de usuários: {e}")
         return False
     return True
 
