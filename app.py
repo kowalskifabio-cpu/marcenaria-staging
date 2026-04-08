@@ -771,43 +771,47 @@ if login():
         except Exception as e: st.error(f"Erro nos indicadores: {e}")
 
     elif menu == "🚨 Auditoria":
-        st.header("🚨 Auditoria de Alterações")
+        st.header("🚨 Auditoria de Alterações (Supabase)")
         try:
-            df_aud = conn.read(worksheet="Alteracoes", ttl="1m")
-            df_aud['temp_date'] = pd.to_datetime(df_aud['Data'], format="%d/%m/%Y %H:%M", errors='coerce')
-            df_aud = df_aud.sort_values(by='temp_date', ascending=False)
+            # BUSCA DADOS DIRETO NO SUPABASE (FIM DO ERRO DE SPREADSHEET)
+            res = supabase.table("alteracoes").select("*").execute()
             
-            with st.expander("🔍 Filtros de Auditoria", expanded=True):
-                c1, c2, c3 = st.columns(3)
-                f_ini = c1.date_input("De", value=date.today() - timedelta(days=7))
-                f_fim = c2.date_input("Até", value=date.today())
-                f_ctr = c3.multiselect("Filtrar CTR", sorted(df_aud['CTR'].dropna().unique()))
-                c4, c5, c6 = st.columns(3)
-                f_prazo = c4.multiselect("Impacto no Prazo", ["Sim", "Não"])
-                f_finan = c5.multiselect("Impacto Financeiro", ["Sim", "Não"])
-                f_dono = c6.multiselect("Dono (Gestor)", sorted(df_aud['Dono'].dropna().unique()))
-
-            mask = (df_aud['temp_date'].dt.date >= f_ini) & (df_aud['temp_date'].dt.date <= f_fim)
-            if f_ctr: mask &= df_aud['CTR'].isin(f_ctr)
-            if f_prazo: mask &= df_aud['Impacto no Prazo'].isin(f_prazo)
-            if f_finan: mask &= df_aud['Impacto Financeiro'].isin(f_finan)
-            if f_dono: mask &= df_aud['Dono'].isin(f_dono)
-            
-            df_final_aud = df_aud[mask].drop(columns=['temp_date'])
-            st.dataframe(df_final_aud, use_container_width=True)
-            
-            if not df_final_aud.empty:
+            if not res.data:
+                st.info("Nenhum registro de auditoria encontrado no Banco de Dados.")
+            else:
+                df_aud = pd.DataFrame(res.data)
+                # Ajusta a data para ordenação
+                df_aud['temp_date'] = pd.to_datetime(df_aud['Data'], dayfirst=True, errors='coerce')
+                df_aud = df_aud.sort_values(by='temp_date', ascending=False)
+                
+                with st.expander("🔍 Filtros de Auditoria", expanded=True):
+                    c1, c2, c3 = st.columns(3)
+                    f_ini = c1.date_input("De", value=date.today() - timedelta(days=7))
+                    f_fim = c2.date_input("Até", value=date.today())
+                    f_ctr = c3.multiselect("Filtrar CTR", sorted(df_aud['CTR'].dropna().unique()) if 'CTR' in df_aud.columns else [])
+                    
+                # Filtro de data no DataFrame
+                mask = (df_aud['temp_date'].dt.date >= f_ini) & (df_aud['temp_date'].dt.date <= f_fim)
+                if f_ctr: mask &= df_aud['CTR'].isin(f_ctr)
+                
+                df_final_aud = df_aud[mask].drop(columns=['temp_date'])
+                
+                # Exibe a tabela
+                st.dataframe(df_final_aud, use_container_width=True)
+                
+                # Exportação
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                     df_final_aud.to_excel(writer, index=False, sheet_name='Auditoria')
-                processed_data = output.getvalue()
+                
                 st.download_button(
                     label="📥 Baixar Auditoria em Excel",
-                    data=processed_data,
-                    file_name=f'auditoria_marcenaria_{datetime.now().strftime("%Y%m%d_%H%M")}.xlsx',
+                    data=output.getvalue(),
+                    file_name=f'auditoria_supabase_{datetime.now().strftime("%Y%m%d")}.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
-        except Exception as e: st.error(f"Erro na auditoria: {e}")
+        except Exception as e: 
+            st.error(f"Erro ao carregar auditoria do banco: {e}")
 
     elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote")
