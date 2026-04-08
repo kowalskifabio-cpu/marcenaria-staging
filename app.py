@@ -774,13 +774,12 @@ if login():
                     st.write(f"Total: {len(df_h)} | ✅ No Prazo: {perf_counts.get('NO PRAZO', 0)} | ❌ Atraso: {perf_counts.get('ATRASADO', 0)}")
         except Exception as e: st.error(f"Erro nos indicadores: {e}")
 
-   elif menu == "🚨 Auditoria":
+    elif menu == "🚨 Auditoria":
         st.header("🚨 Auditoria de Alterações (Supabase)")
         st.info("Histórico em tempo real de todas as movimentações registradas no banco de dados.")
 
         try:
-            # 1. Busca os logs (Removi o 'descending=True' que causou o erro)
-            # A ordenação será feita pelo Pandas logo abaixo para evitar erro de biblioteca
+            # 1. Busca os logs (Ordenação feita via Pandas para evitar erro de versão da biblioteca)
             res = supabase.table("auditoria").select("*").execute()
             
             if not res.data:
@@ -788,14 +787,13 @@ if login():
             else:
                 df_auditoria = pd.DataFrame(res.data)
                 
-                # Ordenamos aqui pelo Pandas (mais seguro)
+                # Ordenação manual pelo ID para garantir que o mais novo apareça no topo
                 if 'id' in df_auditoria.columns:
                     df_auditoria = df_auditoria.sort_values(by='id', ascending=False)
 
-                # 2. Filtros para facilitar a busca
+                # 2. Filtros
                 col1, col2, col3 = st.columns(3)
                 
-                # Garantimos que as colunas existem antes de filtrar
                 usuarios = ["Todos"] + sorted(df_auditoria['usuario'].unique().tolist()) if 'usuario' in df_auditoria.columns else ["Todos"]
                 user_sel = col1.selectbox("Filtrar por Usuário:", usuarios)
                 
@@ -813,20 +811,74 @@ if login():
                 if busca:
                     df_filtered = df_filtered[df_filtered.astype(str).apply(lambda x: x.str.contains(busca, case=False)).any(axis=1)]
 
-                # 3. Exibição da Tabela (Ajustado para os nomes exatos do banco)
+                # 3. Exibição
                 cols_view = [c for c in ['data', 'usuario', 'ctr', 'pedido', 'o_que_mudou'] if c in df_filtered.columns]
-                st.dataframe(
-                    df_filtered[cols_view],
-                    use_container_width=True,
-                    hide_index=True
-                )
+                st.dataframe(df_filtered[cols_view], use_container_width=True, hide_index=True)
                 
                 if st.button("🔄 Atualizar Auditoria"):
                     st.rerun()
-
         except Exception as e:
             st.error(f"Erro ao carregar auditoria: {e}")
 
+    elif menu == "⚠️ Alteração de Pedido":
+        st.header("🔄 Alteração de Pedido em Lote (Supabase)")
+        if papel_usuario not in ["Gerência Geral", "PCP"]: 
+            st.error("Acesso negado.")
+        else:
+            try:
+                df_p = df_global.copy()
+                df_p['Data_Entrega_Str'] = pd.to_datetime(df_p['Data_Entrega'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
+                
+                ctr_lista = [""] + sorted(df_p['CTR'].unique().tolist())
+                ctr_sel = st.selectbox("Selecione a CTR para Alteração", ctr_lista, key="ctr_alteracao")
+                
+                if ctr_sel:
+                    itens_da_ctr = df_p[df_p['CTR'] == ctr_sel]
+                    selecionados = st.multiselect("Selecione os itens:", options=itens_da_ctr['ID_Item'].tolist(), 
+                                                  format_func=lambda x: f"{itens_da_ctr[itens_da_ctr['ID_Item'] == x]['Pedido'].iloc[0]}", 
+                                                  default=itens_da_ctr['ID_Item'].tolist())
+                    
+                    if selecionados:
+                        with st.form("form_alteracao_lote"):
+                            col1, col2 = st.columns(2)
+                            item_ref = itens_da_ctr[itens_da_ctr['ID_Item'] == selecionados[0]]
+                            gestor_atual = item_ref['Dono'].iloc[0]
+                            data_at = item_ref['Data_Entrega_Str'].iloc[0]
+                            
+                            novo_gestor = col1.text_input("Novo Gestor", value=gestor_atual)
+                            try: data_sug = datetime.strptime(data_at, '%Y-%m-%d').date() if data_at else date.today()
+                            except: data_sug = date.today()
+                            nova_data = col2.date_input("Nova Data", value=data_sug)
+                            
+                            st.markdown("#### ⚖️ Impactos da Alteração")
+                            c_imp1, c_imp2 = st.columns(2)
+                            imp_prazo = c_imp1.radio("Impacto no Prazo?", ["Não", "Sim"], horizontal=True)
+                            imp_financeiro = c_imp2.radio("Impacto Financeiro?", ["Não", "Sim"], horizontal=True)
+                            motivo_alt = st.text_area("Motivo da Alteração")
+                            
+                            if st.form_submit_button("APLICAR ALTERAÇÕES EM LOTE 🚀"):
+                                if not motivo_alt: st.error("❌ Descreva o motivo")
+                                else:
+                                    try:
+                                        for id_item in selecionados:
+                                            supabase.table("pedidos").update({
+                                                "dono": novo_gestor,
+                                                "data_entrega": nova_data.strftime('%Y-%m-%d')
+                                            }).eq("id_item", id_item).execute()
+                                            
+                                            item_info = itens_da_ctr[itens_da_ctr['ID_Item'] == id_item].iloc[0]
+                                            log_auditoria_supabase({
+                                                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
+                                                "Pedido": str(item_info['Pedido']), "CTR": str(ctr_sel), 
+                                                "Usuario": st.session_state.user_display, "Dono": novo_gestor,
+                                                "O que mudou": f"LOTE: Data {nova_data}. Motivo: {motivo_alt}", 
+                                                "Impacto no Prazo": imp_prazo, "Impacto Financeiro": imp_financeiro
+                                            })
+                                        st.success(f"✅ {len(selecionados)} itens atualizados!")
+                                        st.cache_data.clear()
+                                        disparar_foguete(); time.sleep(1.5); st.rerun()
+                                    except Exception as e: st.error(f"Erro: {e}")
+            except Exception as e: st.error(f"Erro ao carregar dados: {e}")
     elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote (Supabase)")
         if papel_usuario not in ["Gerência Geral", "PCP"]: 
