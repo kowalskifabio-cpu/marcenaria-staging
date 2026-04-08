@@ -223,24 +223,24 @@ if login():
                 st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
    def log_auditoria_supabase(log_dict):
-    try:
-        # Busca o valor ignorando se a primeira letra é maiúscula ou minúscula
-        def get_val(key):
-            return str(log_dict.get(key.lower()) or log_dict.get(key.capitalize()) or "")
-
-        payload = {
-            "data": get_val("data"),
-            "pedido": get_val("pedido"),
-            "usuario": get_val("usuario"),
-            "o_que_mudou": get_val("o_que_mudou"),
-            "impacto_no_prazo": get_val("impacto_no_prazo"),
-            "impacto_financeiro": get_val("impacto_financeiro"),
-            "ctr": get_val("ctr"),
-            "dono": get_val("dono")
-        }
-        supabase.table("auditoria").insert(payload).execute()
-    except Exception as e:
-        st.error(f"Erro no Banco: {e}")
+        try:
+            # Busca o valor ignorando se a primeira letra é maiúscula ou minúscula
+            def get_val(key):
+                return str(log_dict.get(key.lower()) or log_dict.get(key.capitalize()) or "")
+    
+            payload = {
+                "data": get_val("data"),
+                "pedido": get_val("pedido"),
+                "usuario": get_val("usuario"),
+                "o_que_mudou": get_val("o_que_mudou"),
+                "impacto_no_prazo": get_val("impacto_no_prazo"),
+                "impacto_financeiro": get_val("impacto_financeiro"),
+                "ctr": get_val("ctr"),
+                "dono": get_val("dono")
+            }
+            supabase.table("auditoria").insert(payload).execute()
+        except Exception as e:
+            st.error(f"Erro no Banco: {e}")
         
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
