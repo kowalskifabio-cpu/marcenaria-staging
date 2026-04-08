@@ -293,15 +293,17 @@ if login():
         
     menu = st.sidebar.radio("Navegação", opcoes_menu)
 
-    # --- ABA: CONCLUIR PEDIDOS (BAIXA DEFINITIVA) ---
+   # --- ABA: CONCLUÍDO (BAIXA DEFINITIVA) - VERSÃO BLINDADA ---
     if menu == "🏁 Concluir Pedidos (Baixa)":
         st.header("🏁 Baixa Definitiva de Pedidos")
-        st.info("Pedidos concluídos saem da lista de atrasados e vão para o histórico de entregas.")
+        st.info("Pedidos concluídos saem da lista de ativos e vão para o histórico de entregas no Banco de Dados.")
         
         if papel_usuario not in ["Gerência Geral", "PCP"]:
             st.error("Acesso restrito ao PCP e Gerência.")
         else:
+            # Filtramos quem já chegou no final do fluxo (Leitura via DF Global já sincronizado)
             df_concluir = df_global[df_global['Status_Atual'] == "CONCLUÍDO ✅"]
+            
             if df_concluir.empty:
                 st.warning("Não há itens marcados como 'CONCLUÍDO ✅' para dar baixa no sistema.")
             else:
@@ -317,38 +319,29 @@ if login():
                     
                     if selecionados:
                         if st.button("🚀 DAR BAIXA E ARQUIVAR SELECIONADOS"):
-                            df_pedidos = conn.read(worksheet="Pedidos", ttl=0)
                             try:
-                                df_historico = conn.read(worksheet="Pedidos_Concluidos", ttl=0)
-                            except:
-                                df_historico = pd.DataFrame(columns=df_pedidos.columns.tolist() + ["Data_Finalizacao", "Performance"])
-                            
-                            rows_to_move = df_pedidos[df_pedidos['ID_Item'].isin(selecionados)].copy()
-                            rows_to_move['Data_Finalizacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                            
-                            hoje = date.today()
-                            def calcular_performance(row):
-                                try:
-                                    entrega = pd.to_datetime(row['Data_Entrega']).date()
-                                    return "NO PRAZO" if hoje <= entrega else "ATRASADO"
-                                except: return "S/D"
-                            
-                            rows_to_move['Performance'] = rows_to_move.apply(calcular_performance, axis=1)
-                            df_final_hist = pd.concat([df_historico, rows_to_move], ignore_index=True)
-                            df_final_pedidos = df_pedidos[~df_pedidos['ID_Item'].isin(selecionados)]
-                            
-                            conn.update(worksheet="Pedidos_Concluidos", data=df_final_hist)
-                            conn.update(worksheet="Pedidos", data=df_final_pedidos)
-                            
-                            for id_item in selecionados:
-                                try:
+                                # 1. Atualiza Status no Supabase para ARQUIVADO (A única verdade agora)
+                                for id_item in selecionados:
                                     supabase.table("pedidos").update({"status_atual": "ARQUIVADO"}).eq("id_item", id_item).execute()
-                                except: pass
-                            
-                            st.success(f"✅ {len(selecionados)} itens arquivados com sucesso!")
-                            st.cache_data.clear()
-                            time.sleep(1.5)
-                            st.rerun()
+                                    
+                                    # Registro de Log para Auditoria
+                                    row_baixa = itens_baixa[itens_baixa['ID_Item'] == id_item].iloc[0]
+                                    log_baixa = {
+                                        "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                        "Pedido": str(row_baixa['Pedido']),
+                                        "Usuario": st.session_state.user_display,
+                                        "Dono": str(row_baixa['Dono']),
+                                        "O que mudou": "BAIXA DEFINITIVA: Item movido para o histórico arquivado.",
+                                        "Impacto no Prazo": "Não", "Impacto Financeiro": "Não", "CTR": str(ctr_sel)
+                                    }
+                                    log_auditoria_supabase(log_baixa)
+
+                                st.success(f"✅ {len(selecionados)} itens arquivados com sucesso no Supabase!")
+                                st.cache_data.clear()
+                                time.sleep(1.5)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao processar baixa definitiva: {e}")
 
    # --- FUNÇÃO DE CHECKLIST (GATES) - VERSÃO BLINDADA ---
     def checklist_gate(gate_id, aba, itens_checklist, responsavel_r, executor_e, msg_bloqueio, proximo_status, objetivo, momento, df_p):
