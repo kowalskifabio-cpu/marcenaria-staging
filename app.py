@@ -811,7 +811,7 @@ if login():
         except Exception as e: 
             st.error(f"Erro ao carregar auditoria do banco: {e}")
 
-   elif menu == "⚠️ Alteração de Pedido":
+    elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote (Supabase)")
         if papel_usuario not in ["Gerência Geral", "PCP"]: 
             st.error("Acesso negado.")
@@ -864,13 +864,13 @@ if login():
                                     try:
                                         # --- ATUALIZAÇÃO NO SUPABASE ---
                                         for id_item in selecionados:
-                                            # 1. Atualiza dados do pedido (CORRIGIDO: 'dono' em vez de 'gestor')
+                                            # Atualiza 'dono' (nome correto no banco) e data
                                             supabase.table("pedidos").update({
                                                 "dono": novo_gestor,
                                                 "data_entrega": nova_data.strftime('%Y-%m-%d')
                                             }).eq("id_item", id_item).execute()
                                             
-                                            # 2. Gera o Log de Auditoria
+                                            # Registro de Auditoria
                                             item_info = itens_da_ctr[itens_da_ctr['ID_Item'] == id_item].iloc[0]
                                             log_entry = {
                                                 "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
