@@ -812,64 +812,87 @@ if login():
             st.error(f"Erro ao carregar auditoria do banco: {e}")
 
     elif menu == "⚠️ Alteração de Pedido":
-        st.header("🔄 Alteração de Pedido em Lote")
-        if papel_usuario not in ["Gerência Geral", "PCP"]: st.error("Acesso negado.")
+        st.header("🔄 Alteração de Pedido em Lote (Supabase)")
+        if papel_usuario not in ["Gerência Geral", "PCP"]: 
+            st.error("Acesso negado.")
         else:
             try:
+                # Usamos o df_global que já está sincronizado
                 df_p = df_global.copy()
+                
+                # Formata a data para exibição no seletor
                 df_p['Data_Entrega_Str'] = pd.to_datetime(df_p['Data_Entrega'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('')
+                
                 ctr_lista = [""] + sorted(df_p['CTR'].unique().tolist())
                 ctr_sel = st.selectbox("Selecione a CTR para Alteração", ctr_lista, key="ctr_alteracao")
+                
                 if ctr_sel:
                     itens_da_ctr = df_p[df_p['CTR'] == ctr_sel]
-                    selecionados = st.multiselect("Selecione os itens:", options=itens_da_ctr['ID_Item'].tolist(), format_func=lambda x: f"{itens_da_ctr[itens_da_ctr['ID_Item'] == x]['Pedido'].iloc[0]}", default=itens_da_ctr['ID_Item'].tolist())
+                    selecionados = st.multiselect("Selecione os itens:", 
+                                                  options=itens_da_ctr['ID_Item'].tolist(), 
+                                                  format_func=lambda x: f"{itens_da_ctr[itens_da_ctr['ID_Item'] == x]['Pedido'].iloc[0]}", 
+                                                  default=itens_da_ctr['ID_Item'].tolist())
+                    
                     if selecionados:
                         with st.form("form_alteracao_lote"):
                             col1, col2 = st.columns(2)
-                            gestor_atual = itens_da_ctr[itens_da_ctr['ID_Item'] == selecionados[0]]['Dono'].iloc[0]
+                            
+                            # Busca gestor e data atuais do primeiro item selecionado para sugestão
+                            item_ref = itens_da_ctr[itens_da_ctr['ID_Item'] == selecionados[0]]
+                            gestor_atual = item_ref['Dono'].iloc[0]
+                            data_at = item_ref['Data_Entrega_Str'].iloc[0]
+                            
                             novo_gestor = col1.text_input("Novo Gestor", value=gestor_atual)
-                            data_at = itens_da_ctr[itens_da_ctr['ID_Item'] == selecionados[0]]['Data_Entrega_Str'].iloc[0]
-                            try: data_sug = datetime.strptime(data_at, '%Y-%m-%d').date() if data_at else date.today()
-                            except: data_sug = date.today()
+                            
+                            try: 
+                                data_sug = datetime.strptime(data_at, '%Y-%m-%d').date() if data_at else date.today()
+                            except: 
+                                data_sug = date.today()
+                                
                             nova_data = col2.date_input("Nova Data", value=data_sug)
+                            
                             st.markdown("#### ⚖️ Impactos da Alteração")
                             c_imp1, c_imp2 = st.columns(2)
                             imp_prazo = c_imp1.radio("Impacto no Prazo?", ["Não", "Sim"], horizontal=True)
                             imp_financeiro = c_imp2.radio("Impacto Financeiro?", ["Não", "Sim"], horizontal=True)
-                            motivo = st.text_area("Motivo da Alteração")
+                            motivo_alt = st.text_area("Motivo da Alteração")
+                            
                             if st.form_submit_button("APLICAR ALTERAÇÕES EM LOTE 🚀"):
-                                if not motivo: st.error("❌ Descreva o motivo")
+                                if not motivo_alt: 
+                                    st.error("❌ Descreva o motivo")
                                 else:
-                                    df_save = conn.read(worksheet="Pedidos", ttl=0)
-                                    df_save.loc[df_save['ID_Item'].isin(selecionados), 'Dono'] = novo_gestor
-                                    df_save.loc[df_save['ID_Item'].isin(selecionados), 'Data_Entrega'] = nova_data.strftime('%Y-%m-%d')
-                                    df_save = df_save.drop_duplicates(subset=['ID_Item'], keep='first')
-                                    conn.update(worksheet="Pedidos", data=df_save)
-                                    st.cache_data.clear()
-                                    
-                                    # Logs Híbridos
-                                    logs = []
-                                    for id_item in selecionados:
-                                        item_nome = df_save[df_save['ID_Item'] == id_item]['Pedido'].iloc[0]
-                                        log_entry = {
-                                            "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
-                                            "Pedido": item_nome, "CTR": ctr_sel, "Usuario": st.session_state.user_display, 
-                                            "Dono": novo_gestor,
-                                            "O que mudou": f"LOTE: Data {nova_data} / Gestor {novo_gestor}. Motivo: {motivo}", 
-                                            "Impacto no Prazo": imp_prazo, "Impacto Financeiro": imp_financeiro
-                                        }
-                                        logs.append(log_entry)
-                                        log_auditoria_supabase(log_entry) # Sincronia Supabase
-                                    
-                                    df_alt = conn.read(worksheet="Alteracoes", ttl=0)
-                                    conn.update(worksheet="Alteracoes", data=pd.concat([df_alt, pd.DataFrame(logs)], ignore_index=True))
-                                    
-                                    for id_item in selecionados:
-                                        row_alt = df_save[df_save['ID_Item'] == id_item].iloc[0]
-                                        salvar_no_supabase(id_item, row_alt['Status_Atual'], row_alt)
-                                    st.success("✅ Pedido atualizado!")
-                                    disparar_foguete(); time.sleep(1.5); st.rerun()
-            except Exception as e: st.error(f"Erro: {e}")
+                                    try:
+                                        # --- ATUALIZAÇÃO NO SUPABASE ---
+                                        for id_item in selecionados:
+                                            # 1. Atualiza dados do pedido
+                                            supabase.table("pedidos").update({
+                                                "gestor": novo_gestor,
+                                                "data_entrega": nova_data.strftime('%Y-%m-%d')
+                                            }).eq("id_item", id_item).execute()
+                                            
+                                            # 2. Gera o Log de Auditoria
+                                            item_info = itens_da_ctr[itens_da_ctr['ID_Item'] == id_item].iloc[0]
+                                            log_entry = {
+                                                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
+                                                "Pedido": str(item_info['Pedido']), 
+                                                "CTR": str(ctr_sel), 
+                                                "Usuario": st.session_state.user_display, 
+                                                "Dono": novo_gestor,
+                                                "O que mudou": f"LOTE: Data {nova_data} / Gestor {novo_gestor}. Motivo: {motivo_alt}", 
+                                                "Impacto no Prazo": imp_prazo, 
+                                                "Impacto Financeiro": imp_financeiro
+                                            }
+                                            log_auditoria_supabase(log_entry)
+                                        
+                                        st.success(f"✅ {len(selecionados)} itens atualizados com sucesso!")
+                                        st.cache_data.clear()
+                                        disparar_foguete()
+                                        time.sleep(1.5)
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Erro ao salvar no Banco de Dados: {e}")
+            except Exception as e: 
+                st.error(f"Erro ao carregar dados: {e}")
 
     elif menu == "📥 Importar Itens (Sistema)":
         st.header("📥 Importar Itens da Marcenaria")
