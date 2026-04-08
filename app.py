@@ -236,10 +236,10 @@ if login():
             "ctr": str(log_dict.get('CTR', '')),
             "dono": str(log_dict.get('Dono', ''))       # Gestor/Dono do pedido
         }
-        # CORREÇÃO: Mudamos de .table("alteracoes") para .table("auditoria")
+        # Mudamos para a tabela 'auditoria' que você criou no SQL Editor
         supabase.table("auditoria").insert(payload).execute()
     except Exception as e:
-        # Opcional: st.error(f"Erro log: {e}") para depuração
+        # Silencioso em produção, mas você pode usar st.error(f"Erro: {e}") para testar
         pass
         
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
