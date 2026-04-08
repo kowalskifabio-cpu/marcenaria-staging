@@ -774,29 +774,34 @@ if login():
                     st.write(f"Total: {len(df_h)} | ✅ No Prazo: {perf_counts.get('NO PRAZO', 0)} | ❌ Atraso: {perf_counts.get('ATRASADO', 0)}")
         except Exception as e: st.error(f"Erro nos indicadores: {e}")
 
-    elif menu == "🚨 Auditoria":
+   elif menu == "🚨 Auditoria":
         st.header("🚨 Auditoria de Alterações (Supabase)")
         st.info("Histórico em tempo real de todas as movimentações registradas no banco de dados.")
 
         try:
-            # 1. Busca os logs diretamente da tabela de auditoria no Supabase
-            # Ordenamos pelo ID decrescente para ver o mais recente primeiro
-            res = supabase.table("auditoria").select("*").order("id", descending=True).execute()
+            # 1. Busca os logs (Removi o 'descending=True' que causou o erro)
+            # A ordenação será feita pelo Pandas logo abaixo para evitar erro de biblioteca
+            res = supabase.table("auditoria").select("*").execute()
             
             if not res.data:
                 st.warning("Nenhum registro de auditoria encontrado no Banco de Dados.")
             else:
                 df_auditoria = pd.DataFrame(res.data)
+                
+                # Ordenamos aqui pelo Pandas (mais seguro)
+                if 'id' in df_auditoria.columns:
+                    df_auditoria = df_auditoria.sort_values(by='id', ascending=False)
 
                 # 2. Filtros para facilitar a busca
                 col1, col2, col3 = st.columns(3)
-                usuarios = ["Todos"] + sorted(df_auditoria['usuario'].unique().tolist())
+                
+                # Garantimos que as colunas existem antes de filtrar
+                usuarios = ["Todos"] + sorted(df_auditoria['usuario'].unique().tolist()) if 'usuario' in df_auditoria.columns else ["Todos"]
                 user_sel = col1.selectbox("Filtrar por Usuário:", usuarios)
                 
-                ctrs = ["Todas"] + sorted(df_auditoria['ctr'].unique().astype(str).tolist())
+                ctrs = ["Todas"] + sorted(df_auditoria['ctr'].unique().astype(str).tolist()) if 'ctr' in df_auditoria.columns else ["Todas"]
                 ctr_sel = col2.selectbox("Filtrar por CTR:", ctrs)
                 
-                # Campo de busca livre
                 busca = col3.text_input("Buscar no log (Pedido, Motivo...):")
 
                 # Aplicando os filtros
@@ -808,9 +813,10 @@ if login():
                 if busca:
                     df_filtered = df_filtered[df_filtered.astype(str).apply(lambda x: x.str.contains(busca, case=False)).any(axis=1)]
 
-                # 3. Exibição da Tabela
+                # 3. Exibição da Tabela (Ajustado para os nomes exatos do banco)
+                cols_view = [c for c in ['data', 'usuario', 'ctr', 'pedido', 'o_que_mudou'] if c in df_filtered.columns]
                 st.dataframe(
-                    df_filtered[['data', 'usuario', 'ctr', 'pedido', 'o_que_mudou', 'impacto_no_prazo', 'impacto_financeiro']],
+                    df_filtered[cols_view],
                     use_container_width=True,
                     hide_index=True
                 )
@@ -819,8 +825,7 @@ if login():
                     st.rerun()
 
         except Exception as e:
-            st.error(f"Erro ao carregar auditoria do Supabase: {e}")
-            st.info("Dica: Verifique se a tabela 'auditoria' existe no seu banco de dados.")
+            st.error(f"Erro ao carregar auditoria: {e}")
 
     elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote (Supabase)")
