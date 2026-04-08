@@ -196,76 +196,69 @@ if login():
     df_concluidos_global = load_historico()
 
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
-def salvar_no_supabase(id_item, novo_status, row_dados=None):
-    """Atualiza a tabela principal de pedidos no Supabase"""
-    try:
-        payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
-        if row_dados is not None:
-            # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
-            qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
-            try:
-                qtd_final = float(qtd_limpa)
-            except:
-                qtd_final = 0.0
+    def salvar_no_supabase(id_item, novo_status, row_dados=None):
+        """Atualiza a tabela principal de pedidos no Supabase"""
+        try:
+            payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
+            if row_dados is not None:
+                # --- TRATAMENTO DE NÚMEROS (VÍRGULA PARA PONTO) ---
+                qtd_limpa = str(row_dados.get('Quantidade', 0)).replace(',', '.')
+                try:
+                    qtd_final = float(qtd_limpa)
+                except:
+                    qtd_final = 0.0
 
-            payload.update({
-                "ctr": str(row_dados['CTR']),
-                "obra": str(row_dados.get('Obra', '')),
-                "item_projeto": str(row_dados.get('Item', '')),
-                "pedido": str(row_dados['Pedido']),
-                "dono": str(row_dados['Dono']),
-                "data_entrega": str(row_dados['Data_Entrega']) if pd.notnull(row_dados['Data_Entrega']) else None,
-                "quantidade": qtd_final,
-                "unidade": str(row_dados.get('Unidade', 'un'))
-            })
-        supabase.table("pedidos").upsert(payload).execute()
-    except Exception as e: 
-        st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
+                payload.update({
+                    "ctr": str(row_dados['CTR']),
+                    "obra": str(row_dados.get('Obra', '')),
+                    "item_projeto": str(row_dados.get('Item', '')),
+                    "pedido": str(row_dados['Pedido']),
+                    "dono": str(row_dados['Dono']),
+                    "data_entrega": str(row_dados['Data_Entrega']) if pd.notnull(row_dados['Data_Entrega']) else None,
+                    "quantidade": qtd_final,
+                    "unidade": str(row_dados.get('Unidade', 'un'))
+                })
+            supabase.table("pedidos").upsert(payload).execute()
+        except Exception as e: 
+            st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
 
-def log_auditoria_supabase(log_dict):
-    """Registra alteração na tabela de auditoria do Supabase"""
-    try:
-        # Pega os valores tratando se a chave vem como 'Data' ou 'data'
-        payload = {
-            "data": str(log_dict.get('data') or log_dict.get('Data') or ""),
-            "pedido": str(log_dict.get('pedido') or log_dict.get('Pedido') or ""),
-            "usuario": str(log_dict.get('usuario') or log_dict.get('Usuario') or ""),
-            "o_que_mudou": str(log_dict.get('o_que_mudou') or log_dict.get('O que mudou') or ""),
-            "impacto_no_prazo": str(log_dict.get('impacto_no_prazo') or log_dict.get('Impacto no Prazo') or "Não"),
-            "impacto_financeiro": str(log_dict.get('impacto_financeiro') or log_dict.get('Impacto Financeiro') or "Não"),
-            "ctr": str(log_dict.get('ctr') or log_dict.get('CTR') or ""),
-            "dono": str(log_dict.get('dono') or log_dict.get('Dono') or "")
-        }
-        supabase.table("auditoria").insert(payload).execute()
-    except Exception as e:
-        # Se der erro no banco, agora ele avisa na tela
-        st.error(f"Erro ao salvar log no Supabase: {e}")
+    def log_auditoria_supabase(log_dict):
+        """Registra alteração na tabela de auditoria do Supabase"""
+        try:
+            payload = {
+                "data": str(log_dict.get('data') or log_dict.get('Data') or ""),
+                "pedido": str(log_dict.get('pedido') or log_dict.get('Pedido') or ""),
+                "usuario": str(log_dict.get('usuario') or log_dict.get('Usuario') or ""),
+                "o_que_mudou": str(log_dict.get('o_que_mudou') or log_dict.get('O que mudou') or ""),
+                "impacto_no_prazo": str(log_dict.get('impacto_no_prazo') or log_dict.get('Impacto no Prazo') or "Não"),
+                "impacto_financeiro": str(log_dict.get('impacto_financeiro') or log_dict.get('Impacto Financeiro') or "Não"),
+                "ctr": str(log_dict.get('ctr') or log_dict.get('CTR') or ""),
+                "dono": str(log_dict.get('dono') or log_dict.get('Dono') or "")
+            }
+            supabase.table("auditoria").insert(payload).execute()
+        except Exception as e:
+            st.error(f"Erro ao salvar log no Supabase: {e}")
 
-def atualizar_status_lote(lista_ids, novo_status, df_referencia):
-    """Atualiza o status apenas no Supabase, ignorando o Sheets"""
-    try:
-        # 1. GRAVAR DIRETO NO SUPABASE
-        for id_item in lista_ids:
-            try:
-                # Buscamos a linha do item para ter os dados completos
-                row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
-                # Chamamos a função de sincronia que já testamos e deu certo
-                salvar_no_supabase(id_item, novo_status, row)
-            except Exception as e_item:
-                st.error(f"Erro no item {id_item}: {e_item}")
-                continue
-        
-        # 2. LIMPAR O CACHE E AVISAR O USUÁRIO
-        st.cache_data.clear()
-        st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
-        
-    except Exception as e:
-        st.error(f"Erro geral: {e}")
-            
+    def atualizar_status_lote(lista_ids, novo_status, df_referencia):
+        """Atualiza o status apenas no Supabase, ignorando o Sheets"""
+        try:
+            for id_item in lista_ids:
+                try:
+                    row = df_referencia[df_referencia['ID_Item'].astype(str) == str(id_item)].iloc[0]
+                    salvar_no_supabase(id_item, novo_status, row)
+                except Exception as e_item:
+                    st.error(f"Erro no item {id_item}: {e_item}")
+                    continue
+            st.cache_data.clear()
+            st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
+        except Exception as e:
+            st.error(f"Erro geral: {e}")
+                
     # --- MENU LATERAL ---
     if os.path.exists("Status Apresentação.png"):
         st.sidebar.image("Status Apresentação.png", use_container_width=True)
-    else: st.sidebar.title("STATUS MARCENARIA")
+    else: 
+        st.sidebar.title("STATUS MARCENARIA")
 
     st.sidebar.markdown(f"**👤 {st.session_state.user_display}**")
     papel_usuario = st.session_state.papel_real
@@ -282,7 +275,7 @@ def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         "📊 Resumo e Prazos (Itens)", 
         "📈 Indicadores de Performance", 
         "🚨 Auditoria", 
-        "📋 Central de Relatórios", # Novo Módulo
+        "📋 Central de Relatórios",
         "🛠️ Portão de Retrabalho",
         "💰 Gate 1: Material", 
         "✅ Gate 2: Aceite Técnico", 
@@ -300,7 +293,7 @@ def atualizar_status_lote(lista_ids, novo_status, df_referencia):
             if item in opcoes_menu: opcoes_menu.remove(item)
         
     menu = st.sidebar.radio("Navegação", opcoes_menu)
-
+    
    # --- ABA: CONCLUÍDO (BAIXA DEFINITIVA) - VERSÃO BLINDADA ---
     if menu == "🏁 Concluir Pedidos (Baixa)":
         st.header("🏁 Baixa Definitiva de Pedidos")
