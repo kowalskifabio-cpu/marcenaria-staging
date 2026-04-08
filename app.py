@@ -588,7 +588,7 @@ if login():
 
         st.divider()
         
-        # --- GESTÃO DE QUEM JÁ ESTÁ EM RETRABALHO ---
+        # --- GESTÃO DE QUEM JÁ ESTÁ EM RETRABALHO (VERSÃO SUPABASE) ---
         df_ret = df_global[df_global['Status_Atual'] == "⚠️ Em Retrabalho"]
         if df_ret.empty:
             st.success("Nenhum item em retrabalho no momento.")
@@ -610,20 +610,19 @@ if login():
                         if st.form_submit_button("CONCLUIR RETRABALHO 🛠️"):
                             if not all([c1, c2, c3]): st.error("Valide todo o checklist.")
                             else:
-                                try:
-                                    df_chk = conn.read(worksheet="Checklist_Retrabalho", ttl=0)
-                                    novas_chks = [{"Data": datetime.now().strftime("%d/%m/%Y %H:%M"), "ID_Item": i, "Validado_Por": st.session_state.user_display, "Obs": obs_ret} for i in selecionados]
-                                    conn.update(worksheet="Checklist_Retrabalho", data=pd.concat([df_chk, pd.DataFrame(novas_chks)], ignore_index=True))
-                                    # Sincronia Supabase Checklist Retrabalho
-                                    for i in selecionados:
+                                # Grava Checklist e Status APENAS no Supabase
+                                for i in selecionados:
+                                    try:
                                         supabase.table("checklists_gates").insert({
                                             "gate": "RETRABALHO", "id_item": i, "validado_por": st.session_state.user_display, "obs": obs_ret,
                                             "respostas": {"Dano_Identificado": c1, "Material_Solicitado": c2, "Prioridade_PCP": c3}
                                         }).execute()
-                                except: pass
+                                    except: pass
                                 
                                 atualizar_status_lote(selecionados, proximo_gate, df_ret)
-                                st.success("Itens reintroduzidos no fluxo!"); time.sleep(1); st.rerun()
+                                st.success("Itens reintroduzidos no fluxo via Banco de Dados!")
+                                time.sleep(1)
+                                st.rerun()
 
     # --- ABA: CENTRAL DE RELATÓRIOS (NOVO) ---
     elif menu == "📋 Central de Relatórios":
