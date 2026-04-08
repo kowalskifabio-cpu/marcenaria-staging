@@ -223,24 +223,22 @@ if login():
                 st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
    def log_auditoria_supabase(log_dict):
-       try:
-           # Busca o valor ignorando se a primeira letra é maiúscula ou minúscula
-           def get_val(key):
-               return str(log_dict.get(key.lower()) or log_dict.get(key.capitalize()) or "")
-    
-           payload = {
-               "data": get_val("data"),
-               "pedido": get_val("pedido"),
-               "usuario": get_val("usuario"),
-               "o_que_mudou": get_val("o_que_mudou"),
-               "impacto_no_prazo": get_val("impacto_no_prazo"),
-               "impacto_financeiro": get_val("impacto_financeiro"),
-               "ctr": get_val("ctr"),
-               "dono": get_val("dono")
-           }
-           supabase.table("auditoria").insert(payload).execute()
-       except Exception as e:
-           st.error(f"Erro no Banco: {e}")
+    """Registra alteração na tabela de auditoria do Supabase"""
+    try:
+        # Forçamos a captura independente de ser Maiúscula ou Minúscula
+        payload = {
+            "data": str(log_dict.get('data') or log_dict.get('Data') or ""),
+            "pedido": str(log_dict.get('pedido') or log_dict.get('Pedido') or ""),
+            "usuario": str(log_dict.get('usuario') or log_dict.get('Usuario') or ""),
+            "o_que_mudou": str(log_dict.get('o_que_mudou') or log_dict.get('O que mudou') or ""),
+            "impacto_no_prazo": str(log_dict.get('impacto_no_prazo') or log_dict.get('Impacto no Prazo') or "Não"),
+            "impacto_financeiro": str(log_dict.get('impacto_financeiro') or log_dict.get('Impacto Financeiro') or "Não"),
+            "ctr": str(log_dict.get('ctr') or log_dict.get('CTR') or ""),
+            "dono": str(log_dict.get('dono') or log_dict.get('Dono') or "")
+        }
+        supabase.table("auditoria").insert(payload).execute()
+    except Exception as e:
+        st.error(f"Erro técnico ao salvar log: {e}")
         
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
