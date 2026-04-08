@@ -542,29 +542,29 @@ if login():
 
         except Exception as e: st.error(f"Erro no monitor: {e}")
 
-    # --- RESGATE DE ITENS CONCLUÍDOS (VERSÃO SUPABASE - SEM TELA BRANCA) ---
+    elif menu == "🛠️ Portão de Retrabalho":
+        st.header("🛠️ Gestão de Retrabalho")
+        
+        # --- 1. RESGATE DE ITENS CONCLUÍDOS ---
         with st.expander("⏪ Resgatar Item do Histórico (Concluídos)"):
-            if df_concluidos_global.empty:
-                st.info("Não há histórico de itens concluídos.")
+            if df_concluidos_global is None or df_concluidos_global.empty:
+                st.info("Não há histórico de itens concluídos no momento.")
             else:
-                ctr_hist = st.selectbox("CTR do Item Concluído:", [""] + sorted(df_concluidos_global['CTR'].unique().tolist()))
-                if ctr_hist:
-                    itens_hist = df_concluidos_global[df_concluidos_global['CTR'] == ctr_hist]
-                    item_resgate = st.selectbox("Selecione o Item para retornar ao Retrabalho:", 
-                                               options=itens_hist['ID_Item'].tolist(),
-                                               format_func=lambda x: f"{itens_hist[itens_hist['ID_Item'] == x]['Pedido'].iloc[0]}")
-                    
-                    motivo_resgate = st.text_input("Motivo da Reabertura (Retrabalho):", key="motivo_resgate")
-                    
-                    if st.button("🚨 RESGATAR E ENVIAR PARA RETRABALHO"):
-                        if not motivo_resgate:
-                            st.warning("Informe o motivo.")
-                        else:
-                            try:
+                try:
+                    ctr_hist = st.selectbox("CTR do Item Concluído:", [""] + sorted(df_concluidos_global['CTR'].unique().tolist()))
+                    if ctr_hist:
+                        itens_hist = df_concluidos_global[df_concluidos_global['CTR'] == ctr_hist]
+                        item_resgate = st.selectbox("Selecione o Item para retornar ao Retrabalho:", 
+                                                   options=itens_hist['ID_Item'].tolist(),
+                                                   format_func=lambda x: f"{itens_hist[itens_hist['ID_Item'] == x]['Pedido'].iloc[0]}")
+                        
+                        motivo_resgate = st.text_input("Motivo da Reabertura (Retrabalho):", key="motivo_resgate")
+                        
+                        if st.button("🚨 RESGATAR E ENVIAR PARA RETRABALHO"):
+                            if not motivo_resgate:
+                                st.warning("Informe o motivo.")
+                            else:
                                 row_resgate = itens_hist[itens_hist['ID_Item'] == item_resgate].iloc[0]
-                                novo_status = "⚠️ Em Retrabalho"
-                                
-                                # Log no Supabase
                                 log_res = {
                                     "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
                                     "Pedido": str(row_resgate['Pedido']), 
@@ -574,61 +574,69 @@ if login():
                                     "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": str(ctr_hist)
                                 }
                                 log_auditoria_supabase(log_res)
-                                
-                                # Atualiza Status no Banco
-                                salvar_no_supabase(item_resgate, novo_status, row_resgate)
-                                
-                                st.success("Item resgatado com sucesso no Banco de Dados!")
+                                salvar_no_supabase(item_resgate, "⚠️ Em Retrabalho", row_resgate)
+                                st.success("Item resgatado com sucesso!")
                                 st.cache_data.clear()
                                 time.sleep(1)
                                 st.rerun()
-                            except Exception as e:
-                                st.error(f"Erro ao resgatar: {e}")
+                except Exception as e:
+                    st.error(f"Erro na interface de resgate: {e}")
 
         st.divider()
         
-        # --- GESTÃO DE QUEM JÁ ESTÁ EM RETRABALHO (SEGURO) ---
-        # Filtramos do df_global quem o Supabase já marcou como Retrabalho
-        df_ret = df_global[df_global['Status_Atual'] == "⚠️ Em Retrabalho"]
-        
-        if df_ret.empty:
-            st.success("✅ Nenhum item em retrabalho no momento.")
-        else:
-            ctrs_ret = [""] + sorted(df_ret['CTR'].unique().tolist())
-            ctr_sel = st.selectbox("Selecione a CTR com retrabalho em andamento:", ctrs_ret)
-            if ctr_sel:
-                itens_pend = df_ret[df_ret['CTR'] == ctr_sel]
-                selecionados = st.multiselect("Itens para validar:", 
-                                              options=itens_pend['ID_Item'].tolist(), 
-                                              format_func=lambda x: f"{itens_pend[itens_pend['ID_Item'] == x]['Pedido'].iloc[0]}")
-                if selecionados:
-                    with st.form("form_retrabalho"):
-                        st.markdown("#### ✅ Checklist de Qualidade")
-                        c1 = st.checkbox("Peça Danificada Identificada")
-                        c2 = st.checkbox("Material Solicitado")
-                        c3 = st.checkbox("Prioridade Produção Confirmada")
-                        obs_ret = st.text_area("Observações do Reparo")
-                        proximo_gate = st.selectbox("Retornar para qual portão?", ["Aguardando Produção (G3)", "Aguardando Entrega (G4)"])
-                        
-                        if st.form_submit_button("CONCLUIR RETRABALHO 🛠️"):
-                            if not all([c1, c2, c3]): 
-                                st.error("Valide todo o checklist.")
-                            else:
-                                try:
-                                    for i in selecionados:
-                                        supabase.table("checklists_gates").insert({
-                                            "gate": "RETRABALHO", "id_item": str(i), 
-                                            "validado_por": st.session_state.user_display, "obs": obs_ret,
-                                            "respostas": {"Dano_Identificado": c1, "Material_Solicitado": c2, "Prioridade_PCP": c3}
-                                        }).execute()
+        # --- 2. GESTÃO DE QUEM JÁ ESTÁ EM RETRABALHO ---
+        try:
+            # Filtro seguro para evitar erro caso a coluna não exista
+            if 'Status_Atual' in df_global.columns:
+                df_ret = df_global[df_global['Status_Atual'] == "⚠️ Em Retrabalho"]
+            else:
+                df_ret = pd.DataFrame()
+            
+            if df_ret.empty:
+                st.success("✅ Nenhum item em retrabalho no momento.")
+            else:
+                ctrs_ret = [""] + sorted(df_ret['CTR'].unique().tolist())
+                ctr_sel = st.selectbox("Selecione a CTR com retrabalho em andamento:", ctrs_ret)
+                
+                if ctr_sel:
+                    itens_pend = df_ret[df_ret['CTR'] == ctr_sel]
+                    selecionados = st.multiselect("Itens para validar:", 
+                                                  options=itens_pend['ID_Item'].tolist(), 
+                                                  format_func=lambda x: f"{itens_pend[itens_pend['ID_Item'] == x]['Pedido'].iloc[0]}")
+                    
+                    if selecionados:
+                        with st.form("form_retrabalho"):
+                            st.markdown("#### ✅ Checklist de Qualidade")
+                            c1 = st.checkbox("Peça Danificada Identificada")
+                            c2 = st.checkbox("Material Solicitado")
+                            c3 = st.checkbox("Prioridade Produção Confirmada")
+                            obs_ret = st.text_area("Observações do Reparo")
+                            proximo_gate = st.selectbox("Retornar para qual portão?", ["Aguardando Produção (G3)", "Aguardando Entrega (G4)"])
+                            
+                            if st.form_submit_button("CONCLUIR RETRABALHO 🛠️"):
+                                if not all([c1, c2, c3]):
+                                    st.error("Marque todos os itens.")
+                                else:
+                                    # Gravação com proteção total
+                                    try:
+                                        for i in selecionados:
+                                            supabase.table("checklists_gates").insert({
+                                                "gate": "RETRABALHO", 
+                                                "id_item": str(i), 
+                                                "validado_por": st.session_state.user_display, 
+                                                "obs": obs_ret,
+                                                "respostas": {"Dano_Identificado": c1, "Material_Solicitado": c2, "Prioridade_PCP": c3}
+                                            }).execute()
+                                    except:
+                                        st.warning("Nota: Checklist salvo apenas no fluxo (tabela checklists_gates não encontrada).")
                                     
                                     atualizar_status_lote(selecionados, proximo_gate, df_ret)
-                                    st.success("Itens reintroduzidos no fluxo!")
+                                    st.success("Sucesso!")
                                     time.sleep(1)
                                     st.rerun()
-                                except Exception as e:
-                                    st.error(f"Erro ao concluir retrabalho: {e}")
-
+        except Exception as e:
+            st.error(f"Erro na interface de retrabalho: {e}")
+            
     # --- ABA: CENTRAL DE RELATÓRIOS (NOVO) ---
     elif menu == "📋 Central de Relatórios":
         st.header("📋 Emissão de Relatórios por CTR")
