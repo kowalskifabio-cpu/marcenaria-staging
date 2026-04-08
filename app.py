@@ -538,42 +538,49 @@ if login():
     elif menu == "🛠️ Portão de Retrabalho":
         st.header("🛠️ Gestão de Retrabalho")
         
-        # --- 1. RESGATE DE ITENS CONCLUÍDOS ---
-        with st.expander("⏪ Resgatar Item do Histórico (Concluídos)"):
-            if df_concluidos_global is None or df_concluidos_global.empty:
-                st.info("Não há histórico de itens concluídos no momento.")
+        # --- RESGATE DE ITENS (CORRIGIDO: BUSCA NO BANCO) ---
+        with st.expander("⏪ Resgatar Item Concluído para Retrabalho"):
+            # Buscamos no DF_GLOBAL (que já tem os dados do Supabase) 
+            # apenas quem já terminou o fluxo mas ainda não sumiu do sistema
+            df_concluidos_real = df_global[df_global['Status_Atual'].isin(["CONCLUÍDO ✅", "ARQUIVADO"])]
+            
+            if df_concluidos_real.empty:
+                st.info("Não há itens concluídos ou arquivados no banco de dados para resgate.")
             else:
-                try:
-                    ctr_hist = st.selectbox("CTR do Item Concluído:", [""] + sorted(df_concluidos_global['CTR'].unique().tolist()))
-                    if ctr_hist:
-                        itens_hist = df_concluidos_global[df_concluidos_global['CTR'] == ctr_hist]
-                        item_resgate = st.selectbox("Selecione o Item para retornar ao Retrabalho:", 
-                                                   options=itens_hist['ID_Item'].tolist(),
-                                                   format_func=lambda x: f"{itens_hist[itens_hist['ID_Item'] == x]['Pedido'].iloc[0]}")
-                        
-                        motivo_resgate = st.text_input("Motivo da Reabertura (Retrabalho):", key="motivo_resgate")
-                        
-                        if st.button("🚨 RESGATAR E ENVIAR PARA RETRABALHO"):
-                            if not motivo_resgate:
-                                st.warning("Informe o motivo.")
-                            else:
-                                row_resgate = itens_hist[itens_hist['ID_Item'] == item_resgate].iloc[0]
-                                log_res = {
-                                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"), 
-                                    "Pedido": str(row_resgate['Pedido']), 
-                                    "Usuario": st.session_state.user_display, 
-                                    "Dono": str(row_resgate['Dono']),
-                                    "O que mudou": f"REABERTURA PÓS-CONCLUÍDO: {motivo_resgate}", 
-                                    "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": str(ctr_hist)
-                                }
-                                log_auditoria_supabase(log_res)
-                                salvar_no_supabase(item_resgate, "⚠️ Em Retrabalho", row_resgate)
-                                st.success("Item resgatado com sucesso!")
+                ctr_resgate = st.selectbox("Selecione a CTR do item concluído:", [""] + sorted(df_concluidos_real['CTR'].unique().tolist()))
+                if ctr_resgate:
+                    itens_para_resgatar = df_concluidos_real[df_concluidos_real['CTR'] == ctr_resgate]
+                    item_sel = st.selectbox("Qual item deseja retornar para Retrabalho?", 
+                                           options=itens_para_resgatar['ID_Item'].tolist(),
+                                           format_func=lambda x: f"{itens_para_resgatar[itens_para_resgatar['ID_Item'] == x]['Pedido'].iloc[0]}")
+                    
+                    motivo_r = st.text_input("Motivo da reabertura:", key="resgate_motivo")
+                    
+                    if st.button("🚨 REABRIR E ENVIAR PARA RETRABALHO"):
+                        if not motivo_r:
+                            st.warning("Descreva o motivo.")
+                        else:
+                            try:
+                                # Faz o item "voltar no tempo" no Supabase
+                                row_info = itens_para_resgatar[itens_para_resgatar['ID_Item'] == item_sel].iloc[0]
+                                salvar_no_supabase(item_sel, "⚠️ Em Retrabalho", row_info)
+                                
+                                # Log da "vontolta"
+                                log_auditoria_supabase({
+                                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                    "Pedido": str(row_info['Pedido']),
+                                    "Usuario": st.session_state.user_display,
+                                    "Dono": str(row_info['Dono']),
+                                    "O que mudou": f"REABERTURA DE ITEM CONCLUÍDO: {motivo_r}",
+                                    "Impacto no Prazo": "Sim", "Impacto Financeiro": "Sim", "CTR": str(ctr_resgate)
+                                })
+                                
+                                st.success("Item reaberto! Ele agora aparecerá na lista de Retrabalho abaixo.")
                                 st.cache_data.clear()
                                 time.sleep(1)
                                 st.rerun()
-                except Exception as e:
-                    st.error(f"Erro na interface de resgate: {e}")
+                            except Exception as e:
+                                st.error(f"Erro ao reabrir: {e}")
 
         st.divider()
         
