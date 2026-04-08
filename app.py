@@ -776,46 +776,51 @@ if login():
 
     elif menu == "🚨 Auditoria":
         st.header("🚨 Auditoria de Alterações (Supabase)")
+        st.info("Histórico em tempo real de todas as movimentações registradas no banco de dados.")
+
         try:
-            # BUSCA DADOS DIRETO NO SUPABASE (FIM DO ERRO DE SPREADSHEET)
-            res = supabase.table("alteracoes").select("*").execute()
+            # 1. Busca os logs diretamente da tabela de auditoria no Supabase
+            # Ordenamos pelo ID decrescente para ver o mais recente primeiro
+            res = supabase.table("auditoria").select("*").order("id", descending=True).execute()
             
             if not res.data:
-                st.info("Nenhum registro de auditoria encontrado no Banco de Dados.")
+                st.warning("Nenhum registro de auditoria encontrado no Banco de Dados.")
             else:
-                df_aud = pd.DataFrame(res.data)
-                # Ajusta a data para ordenação
-                df_aud['temp_date'] = pd.to_datetime(df_aud['Data'], dayfirst=True, errors='coerce')
-                df_aud = df_aud.sort_values(by='temp_date', ascending=False)
+                df_auditoria = pd.DataFrame(res.data)
+
+                # 2. Filtros para facilitar a busca
+                col1, col2, col3 = st.columns(3)
+                usuarios = ["Todos"] + sorted(df_auditoria['usuario'].unique().tolist())
+                user_sel = col1.selectbox("Filtrar por Usuário:", usuarios)
                 
-                with st.expander("🔍 Filtros de Auditoria", expanded=True):
-                    c1, c2, c3 = st.columns(3)
-                    f_ini = c1.date_input("De", value=date.today() - timedelta(days=7))
-                    f_fim = c2.date_input("Até", value=date.today())
-                    f_ctr = c3.multiselect("Filtrar CTR", sorted(df_aud['CTR'].dropna().unique()) if 'CTR' in df_aud.columns else [])
-                    
-                # Filtro de data no DataFrame
-                mask = (df_aud['temp_date'].dt.date >= f_ini) & (df_aud['temp_date'].dt.date <= f_fim)
-                if f_ctr: mask &= df_aud['CTR'].isin(f_ctr)
+                ctrs = ["Todas"] + sorted(df_auditoria['ctr'].unique().astype(str).tolist())
+                ctr_sel = col2.selectbox("Filtrar por CTR:", ctrs)
                 
-                df_final_aud = df_aud[mask].drop(columns=['temp_date'])
-                
-                # Exibe a tabela
-                st.dataframe(df_final_aud, use_container_width=True)
-                
-                # Exportação
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df_final_aud.to_excel(writer, index=False, sheet_name='Auditoria')
-                
-                st.download_button(
-                    label="📥 Baixar Auditoria em Excel",
-                    data=output.getvalue(),
-                    file_name=f'auditoria_supabase_{datetime.now().strftime("%Y%m%d")}.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                # Campo de busca livre
+                busca = col3.text_input("Buscar no log (Pedido, Motivo...):")
+
+                # Aplicando os filtros
+                df_filtered = df_auditoria.copy()
+                if user_sel != "Todos":
+                    df_filtered = df_filtered[df_filtered['usuario'] == user_sel]
+                if ctr_sel != "Todas":
+                    df_filtered = df_filtered[df_filtered['ctr'] == ctr_sel]
+                if busca:
+                    df_filtered = df_filtered[df_filtered.astype(str).apply(lambda x: x.str.contains(busca, case=False)).any(axis=1)]
+
+                # 3. Exibição da Tabela
+                st.dataframe(
+                    df_filtered[['data', 'usuario', 'ctr', 'pedido', 'o_que_mudou', 'impacto_no_prazo', 'impacto_financeiro']],
+                    use_container_width=True,
+                    hide_index=True
                 )
-        except Exception as e: 
-            st.error(f"Erro ao carregar auditoria do banco: {e}")
+                
+                if st.button("🔄 Atualizar Auditoria"):
+                    st.rerun()
+
+        except Exception as e:
+            st.error(f"Erro ao carregar auditoria do Supabase: {e}")
+            st.info("Dica: Verifique se a tabela 'auditoria' existe no seu banco de dados.")
 
     elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote (Supabase)")
