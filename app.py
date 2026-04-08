@@ -225,7 +225,7 @@ if login():
    def log_auditoria_supabase(log_dict):
     """Registra alteração na tabela de auditoria do Supabase"""
     try:
-        # Forçamos a captura independente de ser Maiúscula ou Minúscula
+        # Pega os valores tratando se a chave vem como 'Data' ou 'data'
         payload = {
             "data": str(log_dict.get('data') or log_dict.get('Data') or ""),
             "pedido": str(log_dict.get('pedido') or log_dict.get('Pedido') or ""),
@@ -238,7 +238,8 @@ if login():
         }
         supabase.table("auditoria").insert(payload).execute()
     except Exception as e:
-        st.error(f"Erro técnico ao salvar log: {e}")
+        # Se der erro no banco, agora ele avisa na tela
+        st.error(f"Erro ao salvar log no Supabase: {e}")
         
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
