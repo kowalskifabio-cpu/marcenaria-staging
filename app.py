@@ -223,24 +223,24 @@ if login():
                 st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
         
     def log_auditoria_supabase(log_dict):
-        """Registra alteração na tabela de auditoria do Supabase"""
-        try:
-            # Mapeamos as chaves para letras minúsculas conforme o SQL da tabela 'auditoria'
-            payload = {
-                "data": str(log_dict.get('Data', '')),
-                "pedido": str(log_dict.get('Pedido', '')),
-                "usuario": str(log_dict.get('Usuario', '')), # Quem altera
-                "o_que_mudou": str(log_dict.get('O que mudou', '')),
-                "impacto_no_prazo": str(log_dict.get('Impacto no Prazo', '')),
-                "impacto_financeiro": str(log_dict.get('Impacto Financeiro', '')),
-                "ctr": str(log_dict.get('CTR', '')),
-                "dono": str(log_dict.get('Dono', ''))       # Gestor/Dono do pedido
-            }
-            # Mudamos para a tabela 'auditoria' que você criou no SQL Editor
-            supabase.table("auditoria").insert(payload).execute()
-        except Exception as e:
-            # Silencioso em produção, mas você pode usar st.error(f"Erro: {e}") para testar
-            pass
+    """Registra alteração na tabela de auditoria do Supabase"""
+    try:
+        # Mapeamos as chaves para letras minúsculas conforme o SQL da tabela 'auditoria'
+        payload = {
+            "data": str(log_dict.get('Data', '')),
+            "pedido": str(log_dict.get('Pedido', '')),
+            "usuario": str(log_dict.get('Usuario', '')), # Quem está logado e alterou
+            "o_que_mudou": str(log_dict.get('O que mudou', '')),
+            "impacto_no_prazo": str(log_dict.get('Impacto no Prazo', '')),
+            "impacto_financeiro": str(log_dict.get('Impacto Financeiro', '')),
+            "ctr": str(log_dict.get('CTR', '')),
+            "dono": str(log_dict.get('Dono', ''))       # O Gestor responsável pelo pedido
+        }
+        # Enviamos para a tabela 'auditoria' (garanta que o nome está minúsculo)
+        supabase.table("auditoria").insert(payload).execute()
+    except Exception as e:
+        # Se houver erro no banco, ele aparecerá na tela para você saber o motivo
+        st.error(f"Erro ao registrar Auditoria: {e}")
         
     def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
