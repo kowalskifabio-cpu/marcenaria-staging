@@ -563,7 +563,7 @@ if login():
                             try:
                                 # Faz o item "voltar no tempo" no Supabase
                                 row_info = itens_para_resgatar[itens_para_resgatar['ID_Item'] == item_sel].iloc[0]
-                                salvar_no_supabase(item_sel, "⚠️ Em Retrabalho", row_info)
+                                salvar_no_supabase(item_sel, "Aguardando Produção (G3)", row_info)
                                 
                                 # Log da "vontolta"
                                 log_auditoria_supabase({
