@@ -33,11 +33,6 @@ def init_supabase():
 
 supabase = init_supabase()
 
-# Mantido temporariamente apenas para:
-# - login por aba Usuarios no Sheets
-# - histórico antigo Pedidos_Concluidos
-# - alguns relatórios legados
-conn = st.connection("gsheets", type=GSheetsConnection)
 
 
 # =========================================================
