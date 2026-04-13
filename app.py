@@ -15,6 +15,7 @@ from services.pedidos_service import (
 )
 from services.auditoria_service import log_auditoria_supabase
 from services.auth_service import login
+from ui.indicadores import render_indicadores
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
