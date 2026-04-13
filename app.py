@@ -102,8 +102,7 @@ st.markdown(
 # =========================================================
 # UTILITÁRIOS
 # =========================================================
-def disparar_foguete():
-    st.markdown('<div class="rocket-container">🚀</div>', unsafe_allow_html=True)
+
 
 
 def extrair_numero_item(texto):
