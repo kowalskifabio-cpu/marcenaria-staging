@@ -150,7 +150,7 @@ def salvar_no_supabase(supabase, id_item, novo_status, row_dados=None):
                 }
             )
 
-        supabase.table("pedidos").upsert(payload).execute()
+        _supabase.table("pedidos").upsert(payload).execute()
     except Exception as e:
         st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
 
