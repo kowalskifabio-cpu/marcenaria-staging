@@ -518,7 +518,7 @@ def checklist_gate(
 # =========================================================
 if login():
     df_global = load_pedidos()
-    df_concluidos_global = load_historico_legacy()
+    df_concluidos_global = load_historico()
 
     st.sidebar.success("Login OK")
     st.sidebar.write(f"Pedidos carregados: {len(df_global)}")
