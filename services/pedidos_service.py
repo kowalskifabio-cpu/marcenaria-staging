@@ -72,7 +72,7 @@ def load_pedidos(_supabase, extrair_numero_item):
 
 
 @st.cache_data(ttl=60)
-def load_historico(supabase):
+def load_historico(_supabase):
     try:
         response = (
             supabase.table("pedidos")
