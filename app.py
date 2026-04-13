@@ -281,8 +281,8 @@ def atualizar_status_lote(lista_ids, novo_status, df_referencia):
             st.success(f"Sucesso! Status atualizado para '{novo_status}' no Banco de Dados.")
         except Exception as e:
             st.error(f"Erro geral: {e}")
-                
-    # --- MENU LATERAL ---
+
+# --- MENU LATERAL ---
     if os.path.exists("Status Apresentação.png"):
         st.sidebar.image("Status Apresentação.png", use_container_width=True)
     else: 
@@ -321,6 +321,7 @@ def atualizar_status_lote(lista_ids, novo_status, df_referencia):
             if item in opcoes_menu: opcoes_menu.remove(item)
         
     menu = st.sidebar.radio("Navegação", opcoes_menu)
+    
     
    # --- ABA: CONCLUÍDO (BAIXA DEFINITIVA) - VERSÃO BLINDADA ---
     if menu == "🏁 Concluir Pedidos (Baixa)":
