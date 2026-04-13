@@ -881,30 +881,7 @@ if login():
             except Exception as e:
                 st.error(f"Erro: {e}")
 
-    elif menu == "⚙️ SINCRONIZAÇÃO SUPABASE":
-        st.header("⚙️ Sincronização em Massa")
-        c1, c2 = st.columns(2)
-
-        with c1:
-            st.subheader("1. Ativos")
-            if st.button("🚀 SINCRONIZAR ATIVOS"):
-                with st.spinner("Sincronizando ativos..."):
-                    for _, row in df_global.iterrows():
-                        salvar_no_supabase(row["ID_Item"], row["Status_Atual"], row)
-                st.success("Pedidos ativos sincronizados!")
-
-        with c2:
-            st.subheader("2. Histórico")
-            if st.button("🏁 SINCRONIZAR HISTÓRICO"):
-                with st.spinner("Migrando baixas..."):
-                    url_sync = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Pedidos_Concluidos"
-                    df_hist_full = pd.read_csv(url_sync)
-                    prog = st.progress(0)
-                    for i, row in df_hist_full.iterrows():
-                        salvar_no_supabase(row["ID_Item"], "ARQUIVADO", row)
-                        prog.progress((i + 1) / len(df_hist_full))
-                st.success("Histórico sincronizado na tabela 'pedidos'!")
-
+    
     elif menu == "📥 Importar Itens (Sistema)":
         st.header("📥 Importar Itens da Marcenaria")
         if papel_usuario not in ["Gerência Geral", "PCP"]:
