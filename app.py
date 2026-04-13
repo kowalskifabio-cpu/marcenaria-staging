@@ -782,7 +782,7 @@ if login():
                                 st.warning("Descreva o motivo.")
                             else:
                                 row_info = itens_para_resgatar[itens_para_resgatar["ID_Item"] == item_sel].iloc[0]
-                                salvar_no_supabase(item_sel, "⚠️ Em Retrabalho", row_info)
+                                salvar_no_supabase(supabase, item_sel, "⚠️ Em Retrabalho", row_info)
                                 log_auditoria_supabase(
                                     {
                                         "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
