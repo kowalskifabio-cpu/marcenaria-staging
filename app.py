@@ -283,21 +283,21 @@ def atualizar_status_lote(lista_ids, novo_status, df_referencia):
             st.error(f"Erro geral: {e}")
 
 # --- MENU LATERAL ---
-    if os.path.exists("Status Apresentação.png"):
-        st.sidebar.image("Status Apresentação.png", use_container_width=True)
-    else: 
-        st.sidebar.title("STATUS MARCENARIA")
+if os.path.exists("Status Apresentação.png"):
+    st.sidebar.image("Status Apresentação.png", use_container_width=True)
+else: 
+    st.sidebar.title("STATUS MARCENARIA")
 
-    st.sidebar.markdown(f"**👤 {st.session_state.user_display}**")
-    papel_usuario = st.session_state.papel_real
-    st.sidebar.info(f"Função: {papel_usuario}")
+st.sidebar.markdown(f"**👤 {st.session_state.user_display}**")
+papel_usuario = st.session_state.papel_real
+st.sidebar.info(f"Função: {papel_usuario}")
     
-    if st.sidebar.button("Log Out"):
-        st.session_state.authenticated = False
-        st.rerun()
+if st.sidebar.button("Log Out"):
+    st.session_state.authenticated = False
+    st.rerun()
 
-    st.sidebar.markdown("---")
-    
+st.sidebar.markdown("---")
+  
     opcoes_menu = [
         "📉 Monitor por Pedido (CTR)", 
         "📊 Resumo e Prazos (Itens)", 
