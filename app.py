@@ -219,10 +219,10 @@ def load_pedidos():
         except:
             return pd.DataFrame()
     if login():
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    df_global = load_pedidos()
-    df_concluidos_global = load_historico()
- 
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df_global = load_pedidos()
+        df_concluidos_global = load_historico()
+     
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
     def salvar_no_supabase(id_item, novo_status, row_dados=None):
         """Atualiza a tabela principal de pedidos no Supabase"""
