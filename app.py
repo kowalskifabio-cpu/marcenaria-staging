@@ -580,7 +580,7 @@ if login():
                             for id_item in selecionados:
                                 supabase.table("pedidos").update({"status_atual": "ARQUIVADO"}).eq("id_item", id_item).execute()
                                 row_baixa = itens_baixa[itens_baixa["ID_Item"] == id_item].iloc[0]
-                                log_auditoria_supabase(
+                                log_auditoria_supabase(supabase,
                                     {
                                         "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                         "Pedido": str(row_baixa["Pedido"]),
