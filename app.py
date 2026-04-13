@@ -484,7 +484,7 @@ if login(supabase):
                 except Exception as e:
                     st.error(f"Erro na importação: {e}")
 
-    elif menu == "🔧 Portão de Retrabalho":
+    elif menu == "🛠️ Portão de Retrabalho":
         render_retrabalho(df_global, supabase, papel_usuario)
 
     elif menu == "📋 Central de Relatórios":
