@@ -263,7 +263,7 @@ def checklist_gate(
 # =========================================================
 # BLOCO PRINCIPAL LOGADO
 # =========================================================
-if login():
+if login(supabase):
     df_global = load_pedidos(supabase, extrair_numero_item)
     df_concluidos_global = load_historico(supabase)
 
