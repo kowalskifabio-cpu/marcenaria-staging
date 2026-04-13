@@ -160,12 +160,9 @@ def load_pedidos():
             return pd.DataFrame()
 
         df = pd.DataFrame(data)
+        df = df.dropna(subset=["id_item"])
+        df["id_item"] = df["id_item"].astype(str).str.strip()
 
-        # LIMPEZA IGUAL AO QUE VOCÊ JÁ FAZIA
-        df = df.dropna(subset=['id_item'])
-        df['id_item'] = df['id_item'].astype(str).str.strip()
-
-        # PADRONIZA NOMES (IMPORTANTÍSSIMO)
         df = df.rename(columns={
             "id_item": "ID_Item",
             "ctr": "CTR",
@@ -176,19 +173,18 @@ def load_pedidos():
             "status_atual": "Status_Atual",
             "data_entrega": "Data_Entrega",
             "quantidade": "Quantidade",
-            "unidade": "Unidade"
+            "unidade": "Unidade",
         })
 
-        # ORDENAÇÃO
-        df['sort_num'] = df['Item'].apply(extrair_numero_item)
+        if "Item" not in df.columns:
+            df["Item"] = ""
 
-        return df
+        df["sort_num"] = df["Item"].apply(extrair_numero_item)
+        return df.drop_duplicates(subset=["ID_Item"], keep="first")
 
     except Exception as e:
         st.error(f"Erro ao carregar dados do Supabase: {e}")
         return pd.DataFrame()
-        df = df.dropna(subset=['ID_Item'])
-        df['ID_Item'] = df['ID_Item'].astype(str).str.strip()
         
         # 2. Lê o Supabase (A verdade atualizada)
         try:
