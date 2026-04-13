@@ -156,6 +156,7 @@ def login():
             password = st.text_input("Senha", type="password")
 
             if st.button("Entrar"):
+                # 1) mantém o master do secrets
                 if (
                     user == st.secrets["credentials"]["master_user"]
                     and password == st.secrets["credentials"]["master_password"]
@@ -166,35 +167,31 @@ def login():
                     st.session_state.papel_real = "Gerência Geral"
                     st.rerun()
 
+                # 2) agora consulta usuários no Supabase
                 try:
-                    url_users = (
-                        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
-                        f"tqx=out:csv&sheet=Usuarios"
+                    res = (
+                        supabase.table("usuarios")
+                        .select("*")
+                        .eq("usuario", user)
+                        .eq("senha", password)
+                        .eq("ativo", True)
+                        .execute()
                     )
-                    df_users = pd.read_csv(url_users)
-                    df_users["Usuario"] = df_users["Usuario"].astype(str).str.strip()
-                    df_users["Senha"] = df_users["Senha"].astype(str).str.strip()
 
-                    user_match = df_users[
-                        (df_users["Usuario"] == user)
-                        & (df_users["Senha"] == password)
-                    ]
+                    data = res.data or []
 
-                    if not user_match.empty:
+                    if data:
+                        usuario_db = data[0]
                         st.session_state.authenticated = True
                         st.session_state.user_role = "USER"
-                        nome_na_tabela = (
-                            user_match["Nome"].iloc[0] if "Nome" in df_users.columns else user
-                        )
-                        st.session_state.user_display = (
-                            nome_na_tabela if pd.notnull(nome_na_tabela) else user
-                        )
-                        st.session_state.papel_real = user_match["Papel"].iloc[0]
+                        st.session_state.user_display = usuario_db.get("nome") or user
+                        st.session_state.papel_real = usuario_db.get("papel") or "Consulta"
                         st.rerun()
+                    else:
+                        st.error("Usuário ou senha inválidos")
 
-                    st.error("Usuário ou senha inválidos")
                 except Exception as e:
-                    st.error(f"Erro ao conectar com tabela de usuários: {e}")
+                    st.error(f"Erro ao conectar com usuários no Supabase: {e}")
 
         return False
 
