@@ -332,7 +332,7 @@ def checklist_gate(
 # BLOCO PRINCIPAL LOGADO
 # =========================================================
 if login():
-    df_global = load_pedidos()
+    df_global = load_pedidos(supabase, extrair_numero_item)
     df_concluidos_global = load_historico()
 
     st.sidebar.success("Login OK")
