@@ -7,7 +7,12 @@ import pandas as pd
 import streamlit as st
 from services.supabase_client import get_supabase
 from utils.helpers import disparar_foguete, extrair_numero_item, html_status_prazo
-
+from services.pedidos_service import (
+    load_pedidos,
+    load_historico,
+    salvar_no_supabase,
+    atualizar_status_lote,
+)
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
