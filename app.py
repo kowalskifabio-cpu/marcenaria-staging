@@ -669,7 +669,7 @@ if login():
                                         ).eq("id_item", id_item).execute()
 
                                         info = itens_ctr[itens_ctr["ID_Item"] == id_item].iloc[0]
-                                        log_auditoria_supabase(
+                                        log_auditoria_supabase(supabase,
                                             {
                                                 "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                                 "pedido": str(info["Pedido"]),
