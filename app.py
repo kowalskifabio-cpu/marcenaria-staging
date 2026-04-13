@@ -13,6 +13,7 @@ from services.pedidos_service import (
     salvar_no_supabase,
     atualizar_status_lote,
 )
+from services.auditoria_service import log_auditoria_supabase
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
