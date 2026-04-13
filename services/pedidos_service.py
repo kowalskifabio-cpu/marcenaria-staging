@@ -158,7 +158,7 @@ def atualizar_status_lote(supabase, lista_ids, novo_status, df_referencia):
         for id_item in lista_ids:
             try:
                 row = df_referencia[
-                    df_referencia["ID_Item"].astype(str) == str(id_item)
+                    df_referencia["ID_Item"].astype(str).str.strip() == str(id_item).strip()
                 ].iloc[0]
                 salvar_no_supabase(supabase, id_item, novo_status, row)
             except Exception as e_item:
