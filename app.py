@@ -17,6 +17,7 @@ from services.auditoria_service import log_auditoria_supabase
 from services.auth_service import login
 from ui.indicadores import render_indicadores
 from ui.auditoria import render_auditoria
+from ui.monitor_ctr import render_monitor_ctr
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
