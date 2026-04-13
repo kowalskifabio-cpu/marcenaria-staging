@@ -75,7 +75,7 @@ def load_pedidos(_supabase, extrair_numero_item):
 def load_historico(_supabase):
     try:
         response = (
-            supabase.table("pedidos")
+            _supabase.table("pedidos")
             .select("*")
             .eq("status_atual", "ARQUIVADO")
             .execute()
