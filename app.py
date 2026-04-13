@@ -834,7 +834,7 @@ if login():
                                             pass
 
                                         row_info = itens_pend[itens_pend["ID_Item"] == i].iloc[0]
-                                        log_auditoria_supabase(
+                                        log_auditoria_supabase(supabase,
                                             {
                                                 "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                                 "Pedido": str(row_info["Pedido"]),
