@@ -566,7 +566,7 @@ if login(supabase):
             st.error(f"Erro ao carregar auditoria: {e}")
 
     elif menu == "📈 Indicadores de Performance":
-    render_indicadores(df_global)
+        render_indicadores(df_global)
 
     elif menu == "⚠️ Alteração de Pedido":
         st.header("🔄 Alteração de Pedido em Lote")
