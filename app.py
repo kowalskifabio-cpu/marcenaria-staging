@@ -14,6 +14,7 @@ from services.pedidos_service import (
     atualizar_status_lote,
 )
 from services.auditoria_service import log_auditoria_supabase
+from services.auth_service import login
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
