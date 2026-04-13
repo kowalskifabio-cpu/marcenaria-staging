@@ -82,7 +82,7 @@ def render_monitor_ctr(df_global, df_concluidos_global, supabase, html_status_pr
                                         st.write("ID_ITEM ENVIADO:", item["ID_Item"])
                                         atualizar_status_lote(
                                             supabase,
-                                            [item["ID_Item"]],
+                                            [str(item["ID_Item"]).strip()],
                                             "⚠️ Em Retrabalho",
                                             df_p,
                                         )
