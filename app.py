@@ -544,7 +544,6 @@ if login():
         "🚛 Gate 4: Entrega",
         "⚠️ Alteração de Pedido",
         "📥 Importar Itens (Sistema)",
-        "⚙️ SINCRONIZAÇÃO SUPABASE",
         "🏁 Concluir Pedidos (Baixa)",
     ]
 
