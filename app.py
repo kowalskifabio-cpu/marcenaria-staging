@@ -18,6 +18,7 @@ from services.auth_service import login
 from ui.indicadores import render_indicadores
 from ui.auditoria import render_auditoria
 from ui.monitor_ctr import render_monitor_ctr
+from ui.resumo_itens import render_resumo_itens
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
