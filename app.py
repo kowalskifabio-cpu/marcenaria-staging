@@ -150,12 +150,43 @@ def login():
 if login():
     conn = st.connection("gsheets", type=GSheetsConnection)
     
-    @st.cache_data(ttl=10) # Reduzi para 10 segundos para ser mais rápido
-    def load_pedidos():
-        # 1. Lê a Planilha (Base original)
-        sheet_id = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet=Pedidos"
-        df = pd.read_csv(url)
+@st.cache_data(ttl=15)
+def load_pedidos():
+    try:
+        response = supabase.table("pedidos").select("*").execute()
+        data = response.data
+
+        if not data:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(data)
+
+        # LIMPEZA IGUAL AO QUE VOCÊ JÁ FAZIA
+        df = df.dropna(subset=['id_item'])
+        df['id_item'] = df['id_item'].astype(str).str.strip()
+
+        # PADRONIZA NOMES (IMPORTANTÍSSIMO)
+        df = df.rename(columns={
+            "id_item": "ID_Item",
+            "ctr": "CTR",
+            "obra": "Obra",
+            "item_projeto": "Item",
+            "pedido": "Pedido",
+            "dono": "Dono",
+            "status_atual": "Status_Atual",
+            "data_entrega": "Data_Entrega",
+            "quantidade": "Quantidade",
+            "unidade": "Unidade"
+        })
+
+        # ORDENAÇÃO
+        df['sort_num'] = df['Item'].apply(extrair_numero_item)
+
+        return df
+
+    except Exception as e:
+        st.error(f"Erro ao carregar dados do Supabase: {e}")
+        return pd.DataFrame()
         df = df.dropna(subset=['ID_Item'])
         df['ID_Item'] = df['ID_Item'].astype(str).str.strip()
         
