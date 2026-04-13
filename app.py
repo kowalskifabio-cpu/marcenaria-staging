@@ -321,7 +321,7 @@ if login(supabase):
     # TELAS
     # =====================================================
     if menu == "📉 Monitor por Pedido (CTR)":
-    render_monitor_ctr(df_global, df_concluidos_global, supabase, html_status_prazo)
+        render_monitor_ctr(df_global, df_concluidos_global, supabase, html_status_prazo)
     
 
     elif menu == "📊 Resumo e Prazos (Itens)":
