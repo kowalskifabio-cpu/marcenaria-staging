@@ -286,7 +286,7 @@ def checklist_gate(
                     "Impacto Financeiro": "Não",
                     "CTR": ctr_sel,
                 }
-                log_auditoria_supabase(log_entry)
+                log_auditoria_supabase(supabase, log_entry)
 
                 try:
                     supabase.table("checklists_gates").insert(
