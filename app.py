@@ -271,12 +271,45 @@ def load_pedidos():
 
 
 @st.cache_data(ttl=60)
-def load_historico_legacy():
+def load_historico():
     try:
-        return conn.read(worksheet="Pedidos_Concluidos")
-    except Exception:
-        return pd.DataFrame()
+        response = (
+            supabase.table("pedidos")
+            .select("*")
+            .eq("status_atual", "ARQUIVADO")
+            .execute()
+        )
 
+        data = response.data or []
+
+        if not data:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(data)
+
+        if "id_item" not in df.columns:
+            return pd.DataFrame()
+
+        df = df.rename(
+            columns={
+                "id_item": "ID_Item",
+                "ctr": "CTR",
+                "obra": "Obra",
+                "item_projeto": "Item",
+                "pedido": "Pedido",
+                "dono": "Dono",
+                "status_atual": "Status_Atual",
+                "data_entrega": "Data_Entrega",
+                "quantidade": "Quantidade",
+                "unidade": "Unidade",
+            }
+        )
+
+        return df
+
+    except Exception as e:
+        st.error(f"Erro ao carregar histórico do Supabase: {e}")
+        return pd.DataFrame()
 
 # =========================================================
 # ESCRITA NO SUPABASE
