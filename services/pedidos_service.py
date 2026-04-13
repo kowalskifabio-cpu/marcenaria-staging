@@ -2,7 +2,6 @@ import pandas as pd
 import streamlit as st
 
 
-@st.cache_data(ttl=15)
 def load_pedidos(_supabase, extrair_numero_item):
     try:
         response = _supabase.table("pedidos").select("*").execute()
@@ -71,7 +70,6 @@ def load_pedidos(_supabase, extrair_numero_item):
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=60)
 def load_historico(_supabase):
     try:
         response = (
