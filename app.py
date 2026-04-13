@@ -22,14 +22,7 @@ st.set_page_config(
 # =========================================================
 # CONEXÕES
 # =========================================================
-@st.cache_resource
-def init_supabase():
-    url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["key"]
-    return create_client(url, key)
-
-
-supabase = init_supabase()
+supabase = get_supabase()
 
 
 
