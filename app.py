@@ -224,7 +224,7 @@ df_concluidos_global = load_historico()
 st.sidebar.write(f"Pedidos carregados: {len(df_global)}")
      
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
-    def salvar_no_supabase(id_item, novo_status, row_dados=None):
+def salvar_no_supabase(id_item, novo_status, row_dados=None):
         """Atualiza a tabela principal de pedidos no Supabase"""
         try:
             payload = {"id_item": str(id_item), "status_atual": str(novo_status)}
