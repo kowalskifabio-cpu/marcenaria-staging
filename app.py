@@ -249,8 +249,8 @@ def salvar_no_supabase(id_item, novo_status, row_dados=None):
             supabase.table("pedidos").upsert(payload).execute()
         except Exception as e: 
             st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
-
-    def log_auditoria_supabase(log_dict):
+            
+def log_auditoria_supabase(log_dict):
         """Registra alteração na tabela de auditoria do Supabase"""
         try:
             payload = {
