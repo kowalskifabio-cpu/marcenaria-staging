@@ -326,43 +326,8 @@ if login(supabase):
     
 
     elif menu == "📊 Resumo e Prazos (Itens)":
-        st.header("🚦 Monitor de Produção (Itens)")
-        try:
-            df_p = df_global.copy().sort_values(by=["Data_Entrega", "sort_num"])
-            c_f1, c_f2 = st.columns(2)
-            filtro_gestor = c_f1.multiselect("Filtrar por Gestor", sorted(df_p["Dono"].dropna().unique()), key="f_gest_itens")
-            filtro_ctr = c_f2.multiselect("Filtrar por CTR", sorted(df_p["CTR"].dropna().unique()), key="f_ctr_itens")
-
-            if filtro_gestor:
-                df_p = df_p[df_p["Dono"].isin(filtro_gestor)]
-            if filtro_ctr:
-                df_p = df_p[df_p["CTR"].isin(filtro_ctr)]
-
-            df_p["Data_Entrega"] = pd.to_datetime(df_p["Data_Entrega"], errors="coerce")
-
-            for _, row in df_p.iterrows():
-                dias = (row["Data_Entrega"].date() - date.today()).days if pd.notnull(row["Data_Entrega"]) else None
-                if dias is None:
-                    status_html = '<span style="color: grey;">⚪ SEM DATA</span>'
-                elif dias < 0:
-                    status_html = f'<div class="alerta-pulsante">❌ ATRASO ({abs(dias)}d)</div>'
-                elif dias <= 3:
-                    status_html = f'<div class="alerta-pulsante">🔴 URGENTE ({dias}d)</div>'
-                else:
-                    status_html = '<div class="no-prazo">🟢 NO PRAZO</div>'
-
-                c1, c2, c3, c4 = st.columns([2, 4, 2, 2])
-                c1.write(f"**{row['CTR']}**")
-                c2.write(f"**{row['Pedido']}**\n👤 {row['Dono']}")
-                c3.write(
-                    f"📍 {row['Status_Atual']}\n📅 {row['Data_Entrega'].strftime('%d/%m/%Y') if pd.notnull(row['Data_Entrega']) else 'S/D'}"
-                )
-                c4.markdown(status_html, unsafe_allow_html=True)
-                st.markdown("---")
-
-        except Exception as e:
-            st.error(f"Erro no monitor: {e}")
-
+        render_resumo_itens(df_global, df_concluidos_global)
+        
     elif menu == "💰 Gate 1: Material":
         itens = {
             "Materiais": ["Lista validada", "Quantidades conferidas", "Materiais especiais"],
