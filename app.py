@@ -15,50 +15,52 @@ st.set_page_config(page_title="Status - Gestão Integral por Item", layout="wide
 # ID DA PLANILHA DE TESTE (STAGING)
 SHEET_ID = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
 
-# --- 1. CONEXÕES (HÍBRIDA: SHEETS + SUPABASE) ---
+# --- 1. CONEXÕES ---
 @st.cache_resource
 def init_supabase():
     try:
         url = st.secrets["supabase"]["url"]
         key = st.secrets["supabase"]["key"]
         return create_client(url, key)
-    except:
+    except Exception as e:
+        st.error(f"Erro ao iniciar Supabase: {e}")
         return None
 
 supabase = init_supabase()
 
-# Conexão GSheets com o link da planilha já configurado internamente
+# Conexão GSheets mantida só enquanto ainda existir leitura antiga no app
+# Se quiser, depois vamos remover de vez
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # --- FUNÇÃO DE AUTO-REFRESH (5 MINUTOS) ---
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
-refresh_interval = 300 
+refresh_interval = 300
 if time.time() - st.session_state.last_refresh > refresh_interval:
     st.session_state.last_refresh = time.time()
     st.rerun()
 
-# --- ESTILIZAÇÃO CSS (Mantida original) ---
+# --- ESTILIZAÇÃO CSS ---
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
     h1, h2, h3 { color: #634D3E !important; }
     .stButton>button { background-color: #634D3E; color: white; border-radius: 5px; width: 100%; }
     .stInfo { background-color: #f0f2f6; border-left: 5px solid #B59572; }
-    
+
     @keyframes pulse-red {
         0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
         70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
     }
-    
+
     .alerta-pulsante {
-        color: white; 
-        background-color: #FF0000; 
+        color: white;
+        background-color: #FF0000;
         padding: 8px;
-        border-radius: 5px; 
-        font-weight: bold; 
+        border-radius: 5px;
+        font-weight: bold;
         animation: pulse-red 2s infinite;
         text-align: center;
         display: block;
@@ -97,7 +99,6 @@ st.markdown("""
 def disparar_foguete():
     st.markdown('<div class="rocket-container">🚀</div>', unsafe_allow_html=True)
 
-# --- FUNÇÃO DE AUXÍLIO PARA ORDENAÇÃO ---
 def extrair_numero_item(texto):
     try:
         nums = re.findall(r'\d+', str(texto))
@@ -105,7 +106,7 @@ def extrair_numero_item(texto):
     except:
         return 9999
 
-# --- SISTEMA DE LOGIN ---
+# --- LOGIN ---
 def login():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
@@ -113,53 +114,74 @@ def login():
     if not st.session_state.authenticated:
         st.title("🔐 Acesso Restrito - Gestão de Gates")
         col_l, col_r = st.columns(2)
+
         with col_l:
             user = st.text_input("Usuário")
             password = st.text_input("Senha", type="password")
+
             if st.button("Entrar"):
                 if user == st.secrets["credentials"]["master_user"] and \
                    password == st.secrets["credentials"]["master_password"]:
                     st.session_state.authenticated = True
                     st.session_state.user_role = "MASTER"
-                    st.session_state.user_display = "Administrador (Master)" 
+                    st.session_state.user_display = "Administrador (Master)"
                     st.session_state.papel_real = "Gerência Geral"
                     st.rerun()
                 else:
                     try:
-                        # LEITURA BLINDADA DE USUÁRIOS
                         url_users = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Usuarios"
                         df_users = pd.read_csv(url_users)
-                        df_users['Usuario'] = df_users['Usuario'].astype(str).str.strip()
-                        df_users['Senha'] = df_users['Senha'].astype(str).str.strip()
-                        user_match = df_users[(df_users['Usuario'] == user) & (df_users['Senha'] == password)]
-                        
+                        df_users["Usuario"] = df_users["Usuario"].astype(str).str.strip()
+                        df_users["Senha"] = df_users["Senha"].astype(str).str.strip()
+
+                        user_match = df_users[
+                            (df_users["Usuario"] == user) &
+                            (df_users["Senha"] == password)
+                        ]
+
                         if not user_match.empty:
                             st.session_state.authenticated = True
                             st.session_state.user_role = "USER"
-                            nome_na_tabela = user_match['Nome'].iloc[0] if 'Nome' in user_match.columns else user
+                            nome_na_tabela = user_match["Nome"].iloc[0] if "Nome" in df_users.columns else user
                             st.session_state.user_display = nome_na_tabela if pd.notnull(nome_na_tabela) else user
-                            st.session_state.papel_real = user_match['Papel'].iloc[0]
+                            st.session_state.papel_real = user_match["Papel"].iloc[0]
                             st.rerun()
                         else:
                             st.error("Usuário ou senha inválidos")
                     except Exception as e:
                         st.error(f"Erro ao conectar com tabela de usuários: {e}")
+
         return False
+
     return True
 
-if login():
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    
+# trava o app aqui se não estiver logado
+if not login():
+    st.stop()
+
+# debug simples para confirmar que passou do login
+st.sidebar.success("Login OK")
+
 @st.cache_data(ttl=15)
 def load_pedidos():
     try:
+        if supabase is None:
+            st.error("Supabase não inicializado.")
+            return pd.DataFrame()
+
         response = supabase.table("pedidos").select("*").execute()
         data = response.data
 
         if not data:
+            st.warning("Tabela 'pedidos' do Supabase está vazia.")
             return pd.DataFrame()
 
         df = pd.DataFrame(data)
+
+        if "id_item" not in df.columns:
+            st.error("A coluna 'id_item' não existe na tabela pedidos.")
+            return pd.DataFrame()
+
         df = df.dropna(subset=["id_item"])
         df["id_item"] = df["id_item"].astype(str).str.strip()
 
@@ -173,11 +195,12 @@ def load_pedidos():
             "status_atual": "Status_Atual",
             "data_entrega": "Data_Entrega",
             "quantidade": "Quantidade",
-            "unidade": "Unidade",
+            "unidade": "Unidade"
         })
 
-        if "Item" not in df.columns:
-            df["Item"] = ""
+        for col in ["CTR", "Obra", "Item", "Pedido", "Dono", "Status_Atual", "Data_Entrega", "Quantidade", "Unidade"]:
+            if col not in df.columns:
+                df[col] = ""
 
         df["sort_num"] = df["Item"].apply(extrair_numero_item)
         return df.drop_duplicates(subset=["ID_Item"], keep="first")
@@ -185,43 +208,20 @@ def load_pedidos():
     except Exception as e:
         st.error(f"Erro ao carregar dados do Supabase: {e}")
         return pd.DataFrame()
-        
-        # 2. Lê o Supabase (A verdade atualizada)
-        try:
-            # BUSCAMOS TAMBÉM DONO E DATA_ENTREGA
-            res = supabase.table("pedidos").select("id_item, status_atual, dono, data_entrega").execute()
-            if res.data:
-                df_supa = pd.DataFrame(res.data)
-                df_supa['id_item'] = df_supa['id_item'].astype(str).str.strip()
-                
-                # Criamos mapas para cada informação que o Supabase deve "mandar"
-                status_map = dict(zip(df_supa['id_item'], df_supa['status_atual']))
-                dono_map = dict(zip(df_supa['id_item'], df_supa['dono']))
-                data_map = dict(zip(df_supa['id_item'], df_supa['data_entrega']))
-                
-                # SUBSTITUIÇÃO COM PRIORIDADE AO SUPABASE
-                df['Status_Atual'] = df['ID_Item'].map(status_map).fillna(df['Status_Atual'])
-                df['Dono'] = df['ID_Item'].map(dono_map).fillna(df['Dono'])
-                df['Data_Entrega'] = df['ID_Item'].map(data_map).fillna(df['Data_Entrega'])
-                
-        except Exception as e:
-            st.warning(f"Nota: Usando dados da planilha (Alguns campos podem estar desatualizados: {e})")
 
-        # 3. Limpeza e Ordenação
-        df['sort_num'] = df['Item'].apply(extrair_numero_item)
-        return df.drop_duplicates(subset=['ID_Item'], keep='first')
-        
-    @st.cache_data(ttl=60)
-    def load_historico():
-        try:
-            df = conn.read(worksheet="Pedidos_Concluidos")
-            return df
-        except:
-            return pd.DataFrame()
-    if login():
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        df_global = load_pedidos()
-        df_concluidos_global = load_historico()
+@st.cache_data(ttl=60)
+def load_historico():
+    try:
+        df = conn.read(worksheet="Pedidos_Concluidos")
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+df_global = load_pedidos()
+df_concluidos_global = load_historico()
+
+# debug simples
+st.sidebar.write(f"Pedidos carregados: {len(df_global)}")
      
     # --- FUNÇÕES DE SINCRONIZAÇÃO SUPABASE (PARALELO) ---
     def salvar_no_supabase(id_item, novo_status, row_dados=None):
