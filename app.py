@@ -107,16 +107,6 @@ st.markdown(
 
 
 
-def html_status_prazo(dias):
-    if dias is None:
-        return '<span style="color: grey;">⚪ SEM DATA</span>'
-    if dias < 0:
-        return '<div class="alerta-pulsante">❌ ATRASO CRÍTICO</div>'
-    if dias <= 3:
-        return '<div class="alerta-pulsante">🔴 URGENTE</div>'
-    return '<div class="no-prazo">🟢 NO PRAZO</div>'
-
-
 # =========================================================
 # LOGIN
 # =========================================================
