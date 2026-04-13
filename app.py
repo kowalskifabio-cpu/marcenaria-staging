@@ -105,12 +105,6 @@ st.markdown(
 
 
 
-def extrair_numero_item(texto):
-    try:
-        nums = re.findall(r"\d+", str(texto))
-        return int(nums[0]) if nums else 9999
-    except Exception:
-        return 9999
 
 
 def html_status_prazo(dias):
