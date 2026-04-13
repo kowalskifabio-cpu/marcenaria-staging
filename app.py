@@ -422,7 +422,7 @@ if login(supabase):
             papel_usuario,
         )
 
-    elif menu == "📦 Baixa Definitiva":
+    elif menu == "🏁 Concluir Pedidos (Baixa)":
         render_baixa_definitiva(df_global, supabase, papel_usuario)
 
     elif menu == "🚨 Auditoria":
