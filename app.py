@@ -744,7 +744,7 @@ if login():
                             st.warning("⚠️ Nenhum item novo encontrado.")
                         else:
                             for n in novos:
-                                salvar_no_supabase(n["ID_Item"], n["Status_Atual"], n)
+                                salvar_no_supabase(supabase, n["ID_Item"], n["Status_Atual"], n)
                             st.success(f"✅ {len(novos)} novos itens importados no Supabase!")
                             st.cache_data.clear()
                             time.sleep(1)
