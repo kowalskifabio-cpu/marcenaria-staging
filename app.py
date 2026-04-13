@@ -766,7 +766,7 @@ if login():
                             else:
                                 row_info = itens_para_resgatar[itens_para_resgatar["ID_Item"] == item_sel].iloc[0]
                                 salvar_no_supabase(supabase, item_sel, "⚠️ Em Retrabalho", row_info)
-                                log_auditoria_supabase(
+                                log_auditoria_supabase(supabase,
                                     {
                                         "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                         "Pedido": str(row_info["Pedido"]),
