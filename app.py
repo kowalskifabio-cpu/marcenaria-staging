@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 
 import pandas as pd
 import streamlit as st
-from supabase import create_client
+from services.supabase_client import get_supabase
 
 
 # =========================================================
