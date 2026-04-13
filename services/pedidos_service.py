@@ -5,7 +5,7 @@ import streamlit as st
 @st.cache_data(ttl=15)
 def load_pedidos(_supabase, extrair_numero_item):
     try:
-        response = supabase.table("pedidos").select("*").execute()
+        response = _supabase.table("pedidos").select("*").execute()
         data = response.data or []
 
         if not data:
