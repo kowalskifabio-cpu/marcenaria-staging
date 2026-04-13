@@ -864,7 +864,7 @@ if login():
                                             }
                                         )
 
-                                    atualizar_status_lote(selecionados, proximo_gate, itens_pend)
+                                    atualizar_status_lote(supabase, selecionados, proximo_gate, itens_pend)
                                     st.success("Retrabalho concluído com sucesso.")
                                     time.sleep(1)
                                     st.rerun()
