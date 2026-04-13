@@ -20,6 +20,7 @@ from ui.auditoria import render_auditoria
 from ui.monitor_ctr import render_monitor_ctr
 from ui.resumo_itens import render_resumo_itens
 from ui.relatorios import render_relatorios
+from ui.alteracao_lote import render_alteracao_lote
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
