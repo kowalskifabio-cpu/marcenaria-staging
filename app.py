@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 import pandas as pd
 import streamlit as st
 from services.supabase_client import get_supabase
-
+from utils.helpers import disparar_foguete, extrair_numero_item, html_status_prazo
 
 # =========================================================
 # CONFIGURAÇÃO INICIAL
