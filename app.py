@@ -267,7 +267,7 @@ def log_auditoria_supabase(log_dict):
         except Exception as e:
             st.error(f"Erro ao salvar log no Supabase: {e}")
 
-    def atualizar_status_lote(lista_ids, novo_status, df_referencia):
+def atualizar_status_lote(lista_ids, novo_status, df_referencia):
         """Atualiza o status apenas no Supabase, ignorando o Sheets"""
         try:
             for id_item in lista_ids:
