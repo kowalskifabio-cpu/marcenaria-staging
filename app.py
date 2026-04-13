@@ -551,8 +551,8 @@ if login(supabase):
                         except Exception as e:
                             st.error(f"Erro ao processar baixa definitiva: {e}")
 
-   elif menu == "🚨 Auditoria":
-    render_auditoria(supabase)
+    elif menu == "🚨 Auditoria":
+        render_auditoria(supabase)
        
     elif menu == "📈 Indicadores de Performance":
         render_indicadores(df_global)
