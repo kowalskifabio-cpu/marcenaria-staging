@@ -885,12 +885,261 @@ if login():
 
     elif menu == "📥 Importar Itens (Sistema)":
         st.header("📥 Importar Itens da Marcenaria")
-        st.info("Nesta versão limpa, a importação ainda pode ser adaptada no próximo bloco.")
+        if papel_usuario not in ["Gerência Geral", "PCP"]:
+            st.error("Acesso negado.")
+        else:
+            up = st.file_uploader("Arquivo egsDataGrid", type=["csv", "xlsx"])
+            if up:
+                try:
+                    df_up = pd.read_csv(up) if up.name.endswith("csv") else pd.read_excel(up)
+                    st.dataframe(df_up.head(10), use_container_width=True)
+
+                    if st.button("Confirmar Importação"):
+                        existentes = set(df_global["ID_Item"].astype(str).tolist()) if not df_global.empty else set()
+                        novos = []
+
+                        for _, r in df_up.iterrows():
+                            uid = f"{r['Centro de custo']}-{r['Id Programação']}"
+                            dt_crua = pd.to_datetime(r.get("Data Entrega"), errors="coerce")
+                            dt_limpa = dt_crua.strftime("%Y-%m-%d") if pd.notnull(dt_crua) else None
+
+                            if str(uid) not in existentes:
+                                novos.append(
+                                    {
+                                        "ID_Item": str(uid),
+                                        "CTR": r.get("Centro de custo", ""),
+                                        "Obra": r.get("Obra", ""),
+                                        "Item": r.get("Item", ""),
+                                        "Pedido": r.get("Produto", ""),
+                                        "Dono": r.get("Gestor", ""),
+                                        "Status_Atual": "Aguardando Materiais (G1)",
+                                        "Data_Entrega": dt_limpa,
+                                        "Quantidade": r.get("Quantidade", 0),
+                                        "Unidade": r.get("Unidade", "un"),
+                                    }
+                                )
+
+                        if not novos:
+                            st.warning("⚠️ Nenhum item novo encontrado.")
+                        else:
+                            for n in novos:
+                                salvar_no_supabase(n["ID_Item"], n["Status_Atual"], n)
+                            st.success(f"✅ {len(novos)} novos itens importados no Supabase!")
+                            st.cache_data.clear()
+                            time.sleep(1)
+                            st.rerun()
+                except Exception as e:
+                    st.error(f"Erro na importação: {e}")
 
     elif menu == "🛠️ Portão de Retrabalho":
         st.header("🛠️ Gestão de Retrabalho")
-        st.info("Nesta versão limpa, vamos ajustar o retrabalho no próximo bloco.")
+
+        try:
+            df_ret = df_global[df_global["Status_Atual"] == "⚠️ Em Retrabalho"] if "Status_Atual" in df_global.columns else pd.DataFrame()
+
+            with st.expander("⏪ Reabrir item concluído para retrabalho"):
+                df_concluidos_real = df_global[df_global["Status_Atual"].isin(["CONCLUÍDO ✅", "ARQUIVADO"])]
+
+                if df_concluidos_real.empty:
+                    st.info("Não há itens concluídos ou arquivados para resgate.")
+                else:
+                    ctr_resgate = st.selectbox(
+                        "Selecione a CTR do item concluído:",
+                        [""] + sorted(df_concluidos_real["CTR"].dropna().unique().tolist()),
+                    )
+                    if ctr_resgate:
+                        itens_para_resgatar = df_concluidos_real[df_concluidos_real["CTR"] == ctr_resgate]
+                        item_sel = st.selectbox(
+                            "Qual item deseja retornar para retrabalho?",
+                            options=itens_para_resgatar["ID_Item"].tolist(),
+                            format_func=lambda x: f"{itens_para_resgatar[itens_para_resgatar['ID_Item'] == x]['Pedido'].iloc[0]}",
+                        )
+                        motivo_r = st.text_input("Motivo da reabertura:", key="resgate_motivo")
+
+                        if st.button("🚨 REABRIR E ENVIAR PARA RETRABALHO"):
+                            if not motivo_r:
+                                st.warning("Descreva o motivo.")
+                            else:
+                                row_info = itens_para_resgatar[itens_para_resgatar["ID_Item"] == item_sel].iloc[0]
+                                salvar_no_supabase(item_sel, "⚠️ Em Retrabalho", row_info)
+                                log_auditoria_supabase(
+                                    {
+                                        "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                        "Pedido": str(row_info["Pedido"]),
+                                        "Usuario": st.session_state.user_display,
+                                        "Dono": str(row_info["Dono"]),
+                                        "O que mudou": f"REABERTURA DE ITEM CONCLUÍDO: {motivo_r}",
+                                        "Impacto no Prazo": "Sim",
+                                        "Impacto Financeiro": "Sim",
+                                        "CTR": str(ctr_resgate),
+                                    }
+                                )
+                                st.success("Item reaberto com sucesso.")
+                                st.cache_data.clear()
+                                time.sleep(1)
+                                st.rerun()
+
+            st.divider()
+
+            if df_ret.empty:
+                st.success("✅ Nenhum item em retrabalho no momento.")
+            else:
+                ctrs_ret = [""] + sorted(df_ret["CTR"].dropna().unique().tolist())
+                ctr_sel = st.selectbox("Selecione a CTR com retrabalho em andamento:", ctrs_ret)
+
+                if ctr_sel:
+                    itens_pend = df_ret[df_ret["CTR"] == ctr_sel]
+                    selecionados = st.multiselect(
+                        "Itens para validar:",
+                        options=itens_pend["ID_Item"].tolist(),
+                        format_func=lambda x: f"{itens_pend[itens_pend['ID_Item'] == x]['Pedido'].iloc[0]}",
+                    )
+
+                    if selecionados:
+                        with st.form("form_retrabalho"):
+                            st.markdown("#### ✅ Checklist de Qualidade")
+                            c1 = st.checkbox("Peça Danificada Identificada")
+                            c2 = st.checkbox("Material Solicitado")
+                            c3 = st.checkbox("Prioridade Produção Confirmada")
+                            obs_ret = st.text_area("Observações do Reparo")
+                            proximo_gate = st.selectbox(
+                                "Retornar para qual portão?",
+                                ["Aguardando Produção (G3)", "Aguardando Entrega (G4)"],
+                            )
+
+                            if st.form_submit_button("CONCLUIR RETRABALHO 🛠️"):
+                                if not all([c1, c2, c3]):
+                                    st.error("Marque todos os itens.")
+                                else:
+                                    for i in selecionados:
+                                        try:
+                                            supabase.table("checklists_gates").insert(
+                                                {
+                                                    "gate": "RETRABALHO",
+                                                    "id_item": str(i),
+                                                    "validado_por": st.session_state.user_display,
+                                                    "obs": obs_ret,
+                                                    "respostas": {
+                                                        "Dano_Identificado": c1,
+                                                        "Material_Solicitado": c2,
+                                                        "Prioridade_PCP": c3,
+                                                    },
+                                                }
+                                            ).execute()
+                                        except Exception:
+                                            pass
+
+                                        row_info = itens_pend[itens_pend["ID_Item"] == i].iloc[0]
+                                        log_auditoria_supabase(
+                                            {
+                                                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                                "Pedido": str(row_info["Pedido"]),
+                                                "Usuario": st.session_state.user_display,
+                                                "Dono": str(row_info["Dono"]),
+                                                "O que mudou": f"SAÍDA DE RETRABALHO para {proximo_gate}. Obs: {obs_ret}",
+                                                "Impacto no Prazo": "Sim",
+                                                "Impacto Financeiro": "Não",
+                                                "CTR": str(ctr_sel),
+                                            }
+                                        )
+
+                                    atualizar_status_lote(selecionados, proximo_gate, itens_pend)
+                                    st.success("Retrabalho concluído com sucesso.")
+                                    time.sleep(1)
+                                    st.rerun()
+        except Exception as e:
+            st.error(f"Erro na interface de retrabalho: {e}")
 
     elif menu == "📋 Central de Relatórios":
         st.header("📋 Emissão de Relatórios por CTR")
-        st.info("Nesta versão limpa, vamos migrar os relatórios no próximo bloco.")
+
+        try:
+            ctrs_disponiveis = sorted(df_global["CTR"].dropna().unique().tolist()) if not df_global.empty else []
+            ctr_rel = st.selectbox("Selecione a CTR para gerar o relatório:", [""] + ctrs_disponiveis)
+
+            if ctr_rel:
+                tipo_rel = st.radio(
+                    "Selecione o Tipo de Relatório:",
+                    [
+                        "Dossiê Técnico (Fábrica)",
+                        "Relatório de Impedimentos (Gestão)",
+                        "Certificado de Qualidade (Cliente)",
+                    ],
+                )
+
+                itens_da_ctr = df_global[df_global["CTR"] == ctr_rel]["ID_Item"].tolist()
+                res = supabase.table("checklists_gates").select("*").execute()
+                data = res.data or []
+
+                if not data:
+                    st.warning("Nenhum checklist encontrado no banco de dados.")
+                else:
+                    df_chk = pd.DataFrame(data)
+                    if "id_item" not in df_chk.columns:
+                        st.warning("A tabela de checklists não possui a coluna id_item.")
+                    else:
+                        df_chk["id_item"] = df_chk["id_item"].astype(str)
+                        df_final_rel = df_chk[df_chk["id_item"].isin([str(x) for x in itens_da_ctr])].copy()
+
+                        if df_final_rel.empty:
+                            st.warning("Nenhum registro encontrado para esta CTR.")
+                        else:
+                            df_final_rel = df_final_rel.rename(
+                                columns={
+                                    "id_item": "ID_Item",
+                                    "validado_por": "Validado_Por",
+                                    "obs": "Obs",
+                                    "gate": "Gate",
+                                }
+                            )
+                            if "created_at" in df_final_rel.columns:
+                                df_final_rel["Data"] = pd.to_datetime(df_final_rel["created_at"], errors="coerce").dt.strftime("%d/%m/%Y %H:%M")
+                            elif "Data" not in df_final_rel.columns:
+                                df_final_rel["Data"] = ""
+
+                            df_final_rel = df_final_rel.merge(
+                                df_global[["ID_Item", "Pedido"]], on="ID_Item", how="left"
+                            )
+                            df_final_rel = df_final_rel.sort_values(by="Data", ascending=False)
+
+                            if tipo_rel == "Relatório de Impedimentos (Gestão)":
+                                df_final_rel = df_final_rel[
+                                    df_final_rel["Obs"].astype(str).str.contains(
+                                        "BLOQUEADO|PARADO|ERRO|FALTA|PROBLEMA",
+                                        case=False,
+                                        na=False,
+                                    )
+                                ]
+                            elif tipo_rel == "Certificado de Qualidade (Cliente)":
+                                df_final_rel = df_final_rel[
+                                    df_final_rel["Gate"].isin(["GATE 4", "GATE 3", "RETRABALHO"])
+                                ]
+
+                            st.subheader(f"📄 {tipo_rel}")
+                            st.info(f"CTR: {ctr_rel} | Total de Registros: {len(df_final_rel)}")
+
+                            for _, r in df_final_rel.iterrows():
+                                with st.expander(f"📅 {r['Data']} - {r['Pedido']} ({r['Gate']})"):
+                                    st.write(f"**Responsável:** {r.get('Validado_Por', '')}")
+                                    st.write(f"**Nota:** {r.get('Obs', '') or 'Sem comentário adicional.'}")
+
+                            output = io.BytesIO()
+                            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                                cols_export = [c for c in ["Data", "Gate", "Pedido", "Validado_Por", "Obs"] if c in df_final_rel.columns]
+                                df_final_rel[cols_export].to_excel(writer, index=False, sheet_name="Relatorio")
+                                workbook = writer.book
+                                worksheet = writer.sheets["Relatorio"]
+                                header_format = workbook.add_format(
+                                    {"bold": True, "bg_color": "#634D3E", "font_color": "white"}
+                                )
+                                for col_num, value in enumerate(cols_export):
+                                    worksheet.write(0, col_num, value, header_format)
+
+                            st.download_button(
+                                label="📥 Gerar Arquivo para Impressão (Excel)",
+                                data=output.getvalue(),
+                                file_name=f"Relatorio_{tipo_rel}_{ctr_rel}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            )
+        except Exception as e:
+            st.error(f"Erro nos relatórios: {e}")
