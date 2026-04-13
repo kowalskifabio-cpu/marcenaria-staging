@@ -18,7 +18,7 @@ st.set_page_config(
     page_icon="🏗️",
 )
 
-
+SHEET_ID = "1EXZg04wRlKRDUTo0dBTQTelABBhDDgQaGbaRF95s0lI"
 
 # =========================================================
 # CONEXÕES
