@@ -422,53 +422,8 @@ if login(supabase):
             papel_usuario,
         )
 
-    elif menu == "🏁 Concluir Pedidos (Baixa)":
-        st.header("🏁 Baixa Definitiva de Pedidos")
-        st.info("Pedidos concluídos saem da lista de ativos e vão para o histórico arquivado no Supabase.")
-
-        if papel_usuario not in ["Gerência Geral", "PCP"]:
-            st.error("Acesso restrito ao PCP e Gerência.")
-        else:
-            df_concluir = df_global[df_global["Status_Atual"] == "CONCLUÍDO ✅"]
-            if df_concluir.empty:
-                st.warning("Não há itens marcados como 'CONCLUÍDO ✅' para dar baixa no sistema.")
-            else:
-                ctr_lista = [""] + sorted(df_concluir["CTR"].dropna().unique().tolist())
-                ctr_sel = st.selectbox("Selecione a CTR para dar baixa:", ctr_lista)
-
-                if ctr_sel:
-                    itens_baixa = df_concluir[df_concluir["CTR"] == ctr_sel]
-                    selecionados = st.multiselect(
-                        "Selecione os itens para arquivar:",
-                        options=itens_baixa["ID_Item"].tolist(),
-                        format_func=lambda x: f"{itens_baixa[itens_baixa['ID_Item'] == x]['Pedido'].iloc[0]}",
-                        default=itens_baixa["ID_Item"].tolist(),
-                    )
-
-                    if selecionados and st.button("🚀 DAR BAIXA E ARQUIVAR SELECIONADOS"):
-                        try:
-                            for id_item in selecionados:
-                                supabase.table("pedidos").update({"status_atual": "ARQUIVADO"}).eq("id_item", id_item).execute()
-                                row_baixa = itens_baixa[itens_baixa["ID_Item"] == id_item].iloc[0]
-                                log_auditoria_supabase(supabase,
-                                    {
-                                        "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                                        "Pedido": str(row_baixa["Pedido"]),
-                                        "Usuario": st.session_state.user_display,
-                                        "Dono": str(row_baixa["Dono"]),
-                                        "O que mudou": "BAIXA DEFINITIVA: Item movido para o histórico arquivado.",
-                                        "Impacto no Prazo": "Não",
-                                        "Impacto Financeiro": "Não",
-                                        "CTR": str(ctr_sel),
-                                    }
-                                )
-
-                            st.success(f"✅ {len(selecionados)} itens arquivados com sucesso no Supabase!")
-                            st.cache_data.clear()
-                            time.sleep(1)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erro ao processar baixa definitiva: {e}")
+    elif menu == "📦 Baixa Definitiva":
+        render_baixa_definitiva(df_global, supabase, papel_usuario)
 
     elif menu == "🚨 Auditoria":
         render_auditoria(supabase)
