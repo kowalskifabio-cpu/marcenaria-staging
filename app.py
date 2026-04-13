@@ -333,7 +333,7 @@ def checklist_gate(
 # =========================================================
 if login():
     df_global = load_pedidos(supabase, extrair_numero_item)
-    df_concluidos_global = load_historico()
+    df_concluidos_global = load_historico(supabase)
 
     st.sidebar.success("Login OK")
     st.sidebar.write(f"Pedidos carregados: {len(df_global)}")
