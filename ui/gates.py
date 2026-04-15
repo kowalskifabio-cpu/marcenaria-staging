@@ -5,6 +5,7 @@ from datetime import datetime
 from services.auditoria_service import log_auditoria_supabase
 from services.pedidos_service import atualizar_status_lote
 from utils.helpers import disparar_foguete
+from utils.helpers import agora_br_str
 
 def checklist_gate(
     supabase,
