@@ -21,7 +21,7 @@ def render_auditoria(supabase):
 
         df_auditoria = pd.DataFrame(res.data)
 
-        # ===== INDICADORES BÁSICOS =====
+        # ===== INDICADORES =====
         total_registros = len(df_auditoria)
 
         retrabalho = df_auditoria[
