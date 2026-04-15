@@ -22,11 +22,6 @@ def log_auditoria_supabase(supabase, log_dict):
     }
 
     st.write("DEBUG AUDITORIA PAYLOAD:", payload)
-
-    try:
-        response = supabase.table("alteracoes").insert(payload).execute()
-        st.write("DEBUG AUDITORIA RESPONSE:", response)
-        return response
-    except Exception as e:
-        st.error(f"Erro ao salvar log no Supabase: {e}")
-        raise
+    response = supabase.table("alteracoes").insert(payload).execute()
+    st.write("DEBUG AUDITORIA RESPONSE:", response)
+    return response
