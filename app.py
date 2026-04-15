@@ -23,6 +23,7 @@ from ui.relatorios import render_relatorios
 from ui.alteracao_lote import render_alteracao_lote
 from ui.baixa_definitiva import render_baixa_definitiva
 from ui.retrabalho import render_retrabalho
+from ui.gates import checklist_gate
 # =========================================================
 # CONFIGURAÇÃO INICIAL
 # =========================================================
