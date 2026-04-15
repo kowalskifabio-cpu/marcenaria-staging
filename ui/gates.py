@@ -53,8 +53,20 @@ def checklist_gate(
             st.info("Não há mais itens pendentes.")
             return
 
-        gestor_ctr = str(itens_pendentes["Dono"].dropna().iloc[0]) if "Dono" in itens_pendentes.columns and not itens_pendentes["Dono"].dropna().empty else "Não definido"
+        gestor_ctr = (
+            str(itens_pendentes["Dono"].dropna().iloc[0])
+            if "Dono" in itens_pendentes.columns and not itens_pendentes["Dono"].dropna().empty
+            else "Não definido"
+        )
+        
+        data_orcamento_ctr = (
+            str(itens_pendentes["Data_Orcamento"].dropna().iloc[0])
+            if "Data_Orcamento" in itens_pendentes.columns and not itens_pendentes["Data_Orcamento"].dropna().empty
+            else "Não informada"
+        )
+        
         st.markdown(f"**Gestor da CTR:** {gestor_ctr}")
+        st.markdown(f"**Data do Orçamento:** {data_orcamento_ctr}")
 
         selecionados = st.multiselect(
             "Itens disponíveis para validação:",
