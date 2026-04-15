@@ -97,6 +97,7 @@ def render_monitor_ctr(df_global, df_concluidos_global, supabase, html_status_pr
                                             "Impacto no Prazo": "Sim",
                                             "Impacto Financeiro": "Sim",
                                             "CTR": ctr_sel,
+                                            "tipo_evento": "RETRABALHO",
                                         }
 
                                         log_auditoria_supabase(supabase, log_r)
