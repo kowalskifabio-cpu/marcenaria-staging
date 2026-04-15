@@ -93,6 +93,13 @@ def checklist_gate(
             if not submitted:
                 return
 
+            agora_click = time.time()
+            if agora_click - st.session_state[lock_key] < 3:
+                st.warning("Ação já enviada. Aguarde um instante.")
+                return
+
+            st.session_state[lock_key] = agora_click
+            
             if not all(respostas.values()):
                 st.error(f"❌ BLOQUEIO: {msg_bloqueio}")
                 return
