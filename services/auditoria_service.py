@@ -20,6 +20,7 @@ def log_auditoria_supabase(supabase, log_dict):
             ),
             "ctr": str(log_dict.get("ctr") or log_dict.get("CTR") or ""),
             "dono": str(log_dict.get("dono") or log_dict.get("Dono") or ""),
+            "tipo_evento": str(log_dict.get("tipo_evento") or log_dict.get("Tipo_Evento") or ""),
         }
 
         return supabase.table("alteracoes").insert(payload).execute()
