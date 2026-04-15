@@ -348,6 +348,18 @@ if login(supabase):
                             uid = f"{r['Centro de custo']}-{r['Id Programação']}"
                             dt_crua = pd.to_datetime(r.get("Data Entrega"), errors="coerce")
                             dt_limpa = dt_crua.strftime("%Y-%m-%d") if pd.notnull(dt_crua) else None
+                            orc_raw = (
+                                r.get("Data Orçamento")
+                                or r.get("Data_Orcamento")
+                                or r.get("data_orcamento")
+                            )
+                            
+                            dt_orc_crua = pd.to_datetime(orc_raw, errors="coerce")
+                            dt_orc_limpa = (
+                                dt_orc_crua.strftime("%Y-%m-%d")
+                                if pd.notnull(dt_orc_crua)
+                                else (str(orc_raw).strip() if orc_raw is not None and str(orc_raw).strip() not in ["", "nan", "None"] else None)
+                            )
 
                             if str(uid) not in existentes:
                                 novos.append(
