@@ -131,7 +131,7 @@ def salvar_no_supabase(supabase, id_item, novo_status, row_dados=None):
             except Exception:
                 qtd_final = 0.0
 
-           payload.update(
+            payload.update(
                 {
                     "ctr": str(row_dados.get("CTR", "")).strip(),
                     "obra": str(row_dados.get("Obra", "")).strip(),
@@ -148,7 +148,8 @@ def salvar_no_supabase(supabase, id_item, novo_status, row_dados=None):
                 }
             )
 
-        _supabase.table("pedidos").upsert(payload).execute()
+        supabase.table("pedidos").upsert(payload).execute()
+
     except Exception as e:
         st.warning(f"Erro sincronia Supabase (Pedidos): {e}")
 
@@ -164,9 +165,9 @@ def atualizar_status_lote(supabase, lista_ids, novo_status, df_referencia):
             except Exception as e_item:
                 st.error(f"Erro no item {id_item}: {e_item}")
                 continue
-        df_referencia["ID_Item"].astype(str).str.strip() == str(id_item).strip()
-        
+
         st.cache_data.clear()
         st.success(f"Sucesso! Status atualizado para '{novo_status}' no banco de dados.")
+
     except Exception as e:
         st.error(f"Erro geral: {e}")
