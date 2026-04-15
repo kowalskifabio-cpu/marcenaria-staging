@@ -250,6 +250,7 @@ if login(supabase):
             "Governança": ["Dono do Pedido definido", "PCP validou viabilidade", "Aprovado formalmente"],
         }
         checklist_gate(
+            supabase,
             "GATE 2 (TEC)",
             "Checklist_G1",
             itens,
@@ -270,6 +271,7 @@ if login(supabase):
             "Comunicação": ["Produção ciente", "Prazo interno registrado", "Alterações registradas"],
         }
         checklist_gate(
+            supabase,
             "GATE 3",
             "Checklist_G3",
             itens,
@@ -290,6 +292,7 @@ if login(supabase):
             "Prazo": ["Data validada", "Cliente informado", "Equipe montagem alinhada"],
         }
         checklist_gate(
+            supabase,
             "GATE 4",
             "Checklist_G4",
             itens,
