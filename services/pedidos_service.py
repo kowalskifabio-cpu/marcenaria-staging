@@ -144,6 +144,15 @@ def salvar_no_supabase(supabase, id_item, novo_status, row_dados=None):
                         if pd.notnull(row_dados.get("Data_Entrega"))
                         else None
                     ),
+                    "data_orcamento": (
+                        str(
+                            row_dados.get("Data_Orcamento")
+                            or row_dados.get("data_orcamento")
+                            or row_dados.get("Data Orçamento")
+                            or ""
+                        ).strip()
+                        or None
+                    ),
                     "quantidade": qtd_final,
                     "unidade": str(row_dados.get("Unidade", "un")).strip(),
                 }
