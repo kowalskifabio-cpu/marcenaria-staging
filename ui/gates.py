@@ -124,7 +124,7 @@ def checklist_gate(
             atualizar_status_lote(supabase, selecionados, proximo_status, df_p)
             st.success(f"🚀 {len(selecionados)} itens validados no banco de dados!")
             disparar_foguete()
-            time.sleep(5)
+            time.sleep(10)
             st.rerun()
 
     except Exception as e:
