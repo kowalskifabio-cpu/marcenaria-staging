@@ -117,6 +117,7 @@ def checklist_gate(
                     "Impacto no Prazo": "Não",
                     "Impacto Financeiro": "Não",
                     "CTR": ctr_sel,
+                    "tipo_evento": "AVANCO_GATE",
                 }
                 log_auditoria_supabase(supabase, log_entry)
                 
