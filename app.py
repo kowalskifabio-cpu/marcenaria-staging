@@ -199,7 +199,18 @@ if login(supabase):
             if item in opcoes_menu:
                 opcoes_menu.remove(item)
 
-    menu = st.sidebar.radio("Navegação", opcoes_menu)
+    if "menu_atual" not in st.session_state:
+        st.session_state.menu_atual = "📉 Monitor por Pedido (CTR)"
+    
+    menu = st.sidebar.radio(
+        "Navegação",
+        opcoes_menu,
+        index=opcoes_menu.index(st.session_state.menu_atual)
+        if st.session_state.menu_atual in opcoes_menu
+        else 0,
+    )
+    
+    st.session_state.menu_atual = menu
 
     # =====================================================
     # TELAS
