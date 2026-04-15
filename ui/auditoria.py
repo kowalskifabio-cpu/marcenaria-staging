@@ -145,6 +145,7 @@ def render_auditoria(supabase):
                 "data",
                 "pedido",
                 "usuario",
+                "tipo_evento",
                 "o_que_mudou",
                 "impacto_no_prazo",
                 "impacto_financeiro",
