@@ -101,6 +101,15 @@ def checklist_gate(
                     )
 
             obs = st.text_area("Observações Técnicas")
+
+            data_lista_materiais = ""
+            if gate_id == "GATE 1 (MAT)":
+                data_lista_materiais = st.text_input(
+                    "Data de recebimento da lista de materiais (dd/mm/aaaa)",
+                    placeholder="dd/mm/aaaa",
+                    key=f"data_lista_{aba}",
+                )
+            
             submitted = st.form_submit_button(
                 "VALIDAR LOTE SELECIONADO 🚀", disabled=not pode_assinar
             )
