@@ -11,7 +11,7 @@ def render_auditoria(supabase):
             supabase.table("alteracoes")
             .select("*")
             .order("id", desc=True)
-            .limit(200)
+            .limit(500)
             .execute()
         )
 
@@ -21,11 +21,62 @@ def render_auditoria(supabase):
 
         df_auditoria = pd.DataFrame(res.data)
 
-        # ===== INDICADORES =====
-        total_registros = len(df_auditoria)
+        if "data" in df_auditoria.columns:
+            df_auditoria["data_dt"] = pd.to_datetime(
+                df_auditoria["data"],
+                format="%d/%m/%Y %H:%M",
+                errors="coerce",
+                dayfirst=True,
+            )
+        else:
+            df_auditoria["data_dt"] = pd.NaT
 
-        retrabalho = df_auditoria[
-            df_auditoria["o_que_mudou"].astype(str).str.contains("RETRABALHO", na=False)
+        st.subheader("Filtros")
+
+        colf1, colf2, colf3 = st.columns(3)
+
+        lista_gestores = (
+            sorted(df_auditoria["dono"].dropna().astype(str).unique().tolist())
+            if "dono" in df_auditoria.columns
+            else []
+        )
+        lista_ctr = (
+            sorted(df_auditoria["ctr"].dropna().astype(str).unique().tolist())
+            if "ctr" in df_auditoria.columns
+            else []
+        )
+
+        filtro_gestor = colf1.multiselect("Filtrar por Gestor", lista_gestores)
+        filtro_ctr = colf2.multiselect("Filtrar por CTR", lista_ctr)
+
+        data_min = df_auditoria["data_dt"].min()
+        data_max = df_auditoria["data_dt"].max()
+
+        if pd.notnull(data_min) and pd.notnull(data_max):
+            filtro_data_inicial = colf3.date_input("Data inicial", value=data_min.date())
+            filtro_data_final = st.date_input("Data final", value=data_max.date())
+        else:
+            filtro_data_inicial = None
+            filtro_data_final = None
+
+        df_filtrado = df_auditoria.copy()
+
+        if filtro_gestor:
+            df_filtrado = df_filtrado[df_filtrado["dono"].astype(str).isin(filtro_gestor)]
+
+        if filtro_ctr:
+            df_filtrado = df_filtrado[df_filtrado["ctr"].astype(str).isin(filtro_ctr)]
+
+        if filtro_data_inicial and filtro_data_final:
+            df_filtrado = df_filtrado[
+                (df_filtrado["data_dt"].dt.date >= filtro_data_inicial)
+                & (df_filtrado["data_dt"].dt.date <= filtro_data_final)
+            ]
+
+        total_registros = len(df_filtrado)
+
+        retrabalho = df_filtrado[
+            df_filtrado["o_que_mudou"].astype(str).str.contains("RETRABALHO", na=False)
         ]
 
         total_retrabalho = len(retrabalho)
@@ -35,14 +86,32 @@ def render_auditoria(supabase):
         )
 
         col1, col2, col3 = st.columns(3)
-
         col1.metric("Total de Eventos", total_registros)
         col2.metric("Retrabalhos", total_retrabalho)
         col3.metric("% Retrabalho", f"{perc_retrabalho:.1f}%")
 
         st.markdown("---")
 
-        st.dataframe(df_auditoria, use_container_width=True, hide_index=True)
+        cols_exibir = [
+            c for c in [
+                "id",
+                "data",
+                "pedido",
+                "usuario",
+                "o_que_mudou",
+                "impacto_no_prazo",
+                "impacto_financeiro",
+                "ctr",
+                "dono",
+            ]
+            if c in df_filtrado.columns
+        ]
+
+        st.dataframe(
+            df_filtrado[cols_exibir],
+            use_container_width=True,
+            hide_index=True,
+        )
 
     except Exception as e:
         st.error(f"Erro ao carregar auditoria: {e}")
