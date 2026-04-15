@@ -120,8 +120,8 @@ def load_historico(_supabase):
 def salvar_no_supabase(supabase, id_item, novo_status, row_dados=None):
     try:
         payload = {
-            "id_item": str(id_item),
-            "status_atual": str(novo_status),
+            "id_item": str(id_item).strip(),
+            "status_atual": str(novo_status).strip(),
         }
 
         if row_dados is not None:
