@@ -1,3 +1,11 @@
+import streamlit as st
+import time
+from datetime import datetime
+
+from services.auditoria_service import log_auditoria_supabase
+from services.pedidos_service import atualizar_status_lote
+from utils.helpers import disparar_foguete
+
 def checklist_gate(
     gate_id,
     aba,
