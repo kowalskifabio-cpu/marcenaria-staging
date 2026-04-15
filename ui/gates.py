@@ -118,7 +118,6 @@ def checklist_gate(
                     "Impacto Financeiro": "Não",
                     "CTR": ctr_sel,
                 }
-                response_log = log_auditoria_supabase(supabase, log_entry)
                 log_auditoria_supabase(supabase, log_entry)
                 
                 try:
