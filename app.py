@@ -372,6 +372,7 @@ if login(supabase):
                                         "Dono": r.get("Gestor", ""),
                                         "Status_Atual": "Aguardando Materiais (G1)",
                                         "Data_Entrega": dt_limpa,
+                                        "Data_Orcamento": dt_orc_limpa,
                                         "Quantidade": r.get("Quantidade", 0),
                                         "Unidade": r.get("Unidade", "un"),
                                     }
