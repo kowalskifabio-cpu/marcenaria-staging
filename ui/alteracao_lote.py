@@ -68,6 +68,7 @@ def render_alteracao_lote(df_global, supabase, papel_usuario):
                         "impacto_financeiro": imp_f,
                         "ctr": str(ctr_sel),
                         "dono": str(novo_gestor),
+                        "tipo_evento": "ALTERACAO_LOTE",
                     },
                 )
 
