@@ -71,6 +71,10 @@ def checklist_gate(
         )
         if papel_usuario == "Consulta":
             pode_assinar = False
+       
+        lock_key = f"gate_lock_{gate_id}_{ctr_sel}"
+        if lock_key not in st.session_state:
+            st.session_state[lock_key] = 0.0
 
         with st.form(f"form_batch_{aba}"):
             respostas = {}
