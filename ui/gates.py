@@ -146,13 +146,18 @@ def checklist_gate(
                 log_auditoria_supabase(supabase, log_entry)
                 
                 try:
+                    respostas_salvar = respostas.copy()
+                
+                    if gate_id == "GATE 1 (MAT)" and str(data_lista_materiais).strip():
+                        respostas_salvar["Data_Recebimento_Lista_Materiais"] = str(data_lista_materiais).strip()
+                
                     supabase.table("checklists_gates").insert(
                         {
                             "gate": gate_id,
                             "id_item": id_item,
                             "validado_por": st.session_state.user_display,
                             "obs": obs,
-                            "respostas": respostas,
+                            "respostas": respostas_salvar,
                         }
                     ).execute()
                 except Exception:
