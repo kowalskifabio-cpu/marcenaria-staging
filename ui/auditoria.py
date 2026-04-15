@@ -76,9 +76,9 @@ def render_auditoria(supabase):
         total_registros = len(df_filtrado)
 
         retrabalho = df_filtrado[
-            df_filtrado["o_que_mudou"].astype(str).str.contains("RETRABALHO", na=False)
-        ]
-
+            df_filtrado["tipo_evento"].astype(str) == "RETRABALHO"
+        ] if "tipo_evento" in df_filtrado.columns else pd.DataFrame()
+        
         total_retrabalho = len(retrabalho)
 
         perc_retrabalho = (
