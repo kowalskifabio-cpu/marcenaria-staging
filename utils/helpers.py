@@ -22,3 +22,10 @@ def html_status_prazo(dias):
     if dias <= 3:
         return '<div class="alerta-pulsante">🔴 URGENTE</div>'
     return '<div class="no-prazo">🟢 NO PRAZO</div>'
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+def agora_br_str():
+    return datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")
