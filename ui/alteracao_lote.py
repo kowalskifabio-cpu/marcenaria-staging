@@ -3,6 +3,7 @@ from datetime import datetime
 import streamlit as st
 
 from services.auditoria_service import log_auditoria_supabase
+from utils.helpers import agora_br_str
 
 
 def render_alteracao_lote(df_global, supabase, papel_usuario):
@@ -60,7 +61,7 @@ def render_alteracao_lote(df_global, supabase, papel_usuario):
                 log_auditoria_supabase(
                     supabase,
                     {
-                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "data": agora_br_str(),
                         "pedido": str(info["Pedido"]),
                         "usuario": st.session_state.user_display,
                         "o_que_mudou": f"LOTE: Data {nova_data}. Motivo: {motivo}",
