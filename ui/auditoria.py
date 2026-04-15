@@ -92,6 +92,53 @@ def render_auditoria(supabase):
 
         st.markdown("---")
 
+        st.subheader("Retrabalho por Gestor")
+
+        if "dono" in df_filtrado.columns:
+            base_retrabalho = df_filtrado[
+                df_filtrado["o_que_mudou"].astype(str).str.contains("RETRABALHO", na=False)
+            ].copy()
+
+            if base_retrabalho.empty:
+                st.info("Nenhum retrabalho encontrado para os filtros aplicados.")
+            else:
+                total_por_gestor = (
+                    df_filtrado.groupby("dono")
+                    .size()
+                    .reset_index(name="total_eventos")
+                )
+
+                retrabalho_por_gestor = (
+                    base_retrabalho.groupby("dono")
+                    .size()
+                    .reset_index(name="retrabalhos")
+                )
+
+                resumo_gestor = total_por_gestor.merge(
+                    retrabalho_por_gestor,
+                    on="dono",
+                    how="left"
+                )
+
+                resumo_gestor["retrabalhos"] = resumo_gestor["retrabalhos"].fillna(0).astype(int)
+
+                resumo_gestor["%_retrabalho"] = (
+                    (resumo_gestor["retrabalhos"] / resumo_gestor["total_eventos"]) * 100
+                ).round(1)
+
+                resumo_gestor = resumo_gestor.sort_values(
+                    by="%_retrabalho",
+                    ascending=False
+                )
+
+                st.dataframe(
+                    resumo_gestor,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+        st.markdown("---")
+
         cols_exibir = [
             c for c in [
                 "id",
