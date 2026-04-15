@@ -200,15 +200,15 @@ if login(supabase):
                 opcoes_menu.remove(item)
 
     if "menu_atual" not in st.session_state:
-    st.session_state.menu_atual = "📉 Monitor por Pedido (CTR)"
-
-    st.sidebar.radio(
-        "Navegação",
-        opcoes_menu,
-        key="menu_atual",
-    )
+        st.session_state.menu_atual = "📉 Monitor por Pedido (CTR)"
     
-    menu = st.session_state.menu_atual
+        st.sidebar.radio(
+            "Navegação",
+            opcoes_menu,
+            key="menu_atual",
+        )
+        
+        menu = st.session_state.menu_atual
 
     # =====================================================
     # TELAS
