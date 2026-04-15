@@ -96,8 +96,8 @@ def render_auditoria(supabase):
 
         if "dono" in df_filtrado.columns:
             base_retrabalho = df_filtrado[
-                df_filtrado["o_que_mudou"].astype(str).str.contains("RETRABALHO", na=False)
-            ].copy()
+                df_filtrado["tipo_evento"].astype(str) == "RETRABALHO"
+            ].copy() if "tipo_evento" in df_filtrado.columns else pd.DataFrame()
 
             if base_retrabalho.empty:
                 st.info("Nenhum retrabalho encontrado para os filtros aplicados.")
