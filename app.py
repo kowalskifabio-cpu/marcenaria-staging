@@ -188,6 +188,7 @@ if login(supabase):
         "🏁 Concluir Pedidos (Baixa)",
     ]
 
+    # ===== CONTROLE DE ACESSO =====
     if papel_usuario == "Dono do Pedido (DP)":
         for item in [
             "🚨 Auditoria",
@@ -198,17 +199,19 @@ if login(supabase):
         ]:
             if item in opcoes_menu:
                 opcoes_menu.remove(item)
-
+    
+    
+    # ===== MENU (SEMPRE FORA DE IF) =====
     if "menu_atual" not in st.session_state:
         st.session_state.menu_atual = "📉 Monitor por Pedido (CTR)"
-            
+    
     st.sidebar.radio(
         "Navegação",
         opcoes_menu,
         key="menu_atual",
     )
-                
-     menu = st.session_state.menu_atual
+    
+    menu = st.session_state.menu_atual
 
     # =====================================================
     # TELAS
