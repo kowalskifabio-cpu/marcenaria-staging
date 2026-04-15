@@ -164,7 +164,8 @@ def atualizar_status_lote(supabase, lista_ids, novo_status, df_referencia):
             except Exception as e_item:
                 st.error(f"Erro no item {id_item}: {e_item}")
                 continue
-
+        df_referencia["ID_Item"].astype(str).str.strip() == str(id_item).strip()
+        
         st.cache_data.clear()
         st.success(f"Sucesso! Status atualizado para '{novo_status}' no banco de dados.")
     except Exception as e:
