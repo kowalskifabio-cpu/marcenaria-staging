@@ -324,7 +324,7 @@ if login(supabase):
         render_auditoria(supabase)
        
     elif menu == "📈 Indicadores de Performance":
-        render_indicadores(df_global)
+        render_indicadores(df_global, df_concluidos_global)
 
     elif menu == "⚠️ Alteração de Pedido":
         render_alteracao_lote(df_global, supabase, papel_usuario)
