@@ -107,9 +107,8 @@ def checklist_gate(
                     "CTR": ctr_sel,
                 }
                 response_log = log_auditoria_supabase(supabase, log_entry)
-                st.write("DEBUG LOG RESPONSE:", response_log)
-                st.stop()
-
+                log_auditoria_supabase(supabase, log_entry)
+                
                 try:
                     supabase.table("checklists_gates").insert(
                         {
@@ -126,7 +125,7 @@ def checklist_gate(
             atualizar_status_lote(supabase, selecionados, proximo_status, df_p)
             st.success(f"🚀 {len(selecionados)} itens validados no banco de dados!")
             disparar_foguete()
-            time.sleep(10)
+            time.sleep(1)
             st.rerun()
 
     except Exception as e:
