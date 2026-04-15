@@ -97,7 +97,7 @@ def checklist_gate(
                 item_nome = itens_pendentes[itens_pendentes["ID_Item"] == id_item]["Pedido"].iloc[0]
 
                 log_entry = {
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "Data": agora_br_str(),
                     "Pedido": item_nome,
                     "Usuario": st.session_state.user_display,
                     "Dono": dono_item,
