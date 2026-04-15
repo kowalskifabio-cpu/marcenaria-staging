@@ -4,6 +4,7 @@ import streamlit as st
 
 from services.auditoria_service import log_auditoria_supabase
 from services.pedidos_service import atualizar_status_lote
+from utils.helpers import agora_br_str
 
 
 def render_baixa_definitiva(df_global, supabase, papel_usuario):
@@ -53,7 +54,7 @@ def render_baixa_definitiva(df_global, supabase, papel_usuario):
                 log_auditoria_supabase(
                     supabase,
                     {
-                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "data": agora_br_str(),
                         "pedido": str(info["Pedido"]),
                         "usuario": st.session_state.user_display,
                         "o_que_mudou": f"BAIXA DEFINITIVA: {motivo}",
@@ -61,6 +62,7 @@ def render_baixa_definitiva(df_global, supabase, papel_usuario):
                         "impacto_financeiro": "Não",
                         "ctr": str(ctr_sel),
                         "dono": str(info["Dono"]),
+                        "tipo_evento": "BAIXA_DEFINITIVA",
                     },
                 )
 
