@@ -7,6 +7,7 @@ from services.pedidos_service import atualizar_status_lote
 from utils.helpers import disparar_foguete
 
 def checklist_gate(
+    supabase,
     gate_id,
     aba,
     itens_checklist,
