@@ -131,20 +131,20 @@ def salvar_no_supabase(supabase, id_item, novo_status, row_dados=None):
             except Exception:
                 qtd_final = 0.0
 
-            payload.update(
+           payload.update(
                 {
-                    "ctr": str(row_dados.get("CTR", "")),
-                    "obra": str(row_dados.get("Obra", "")),
-                    "item_projeto": str(row_dados.get("Item", "")),
-                    "pedido": str(row_dados.get("Pedido", "")),
-                    "dono": str(row_dados.get("Dono", "")),
+                    "ctr": str(row_dados.get("CTR", "")).strip(),
+                    "obra": str(row_dados.get("Obra", "")).strip(),
+                    "item_projeto": str(row_dados.get("Item", "")).strip(),
+                    "pedido": str(row_dados.get("Pedido", "")).strip(),
+                    "dono": str(row_dados.get("Dono", "")).strip(),
                     "data_entrega": (
-                        str(row_dados.get("Data_Entrega"))
+                        str(row_dados.get("Data_Entrega")).strip()
                         if pd.notnull(row_dados.get("Data_Entrega"))
                         else None
                     ),
                     "quantidade": qtd_final,
-                    "unidade": str(row_dados.get("Unidade", "un")),
+                    "unidade": str(row_dados.get("Unidade", "un")).strip(),
                 }
             )
 
