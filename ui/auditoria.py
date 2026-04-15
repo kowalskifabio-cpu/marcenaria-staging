@@ -4,7 +4,6 @@ import streamlit as st
 
 def render_auditoria(supabase):
     st.header("🚨 Auditoria de Alterações (Supabase)")
-    st.warning("VERSAO NOVA DA AUDITORIA - TESTE 01")
     st.info("Histórico em tempo real das movimentações registradas no banco de dados.")
 
     try:
@@ -16,8 +15,6 @@ def render_auditoria(supabase):
             .execute()
         )
 
-        st.write("DEBUG TOTAL RETORNADO:", len(res.data) if res.data else 0)
-
         if not res.data:
             st.warning("Nenhum registro de auditoria encontrado no banco de dados.")
             return
@@ -26,26 +23,24 @@ def render_auditoria(supabase):
 
         # ===== INDICADORES BÁSICOS =====
         total_registros = len(df_auditoria)
-        
+
         retrabalho = df_auditoria[
-            df_auditoria["o_que_mudou"].str.contains("RETRABALHO", na=False)
+            df_auditoria["o_que_mudou"].astype(str).str.contains("RETRABALHO", na=False)
         ]
-        
+
         total_retrabalho = len(retrabalho)
-        
+
         perc_retrabalho = (
             (total_retrabalho / total_registros) * 100 if total_registros > 0 else 0
         )
-        
+
         col1, col2, col3 = st.columns(3)
-        
+
         col1.metric("Total de Eventos", total_registros)
         col2.metric("Retrabalhos", total_retrabalho)
         col3.metric("% Retrabalho", f"{perc_retrabalho:.1f}%")
-        
-        st.markdown("---")
 
-        st.write("DEBUG IDs TOPO:", df_auditoria["id"].head(10).tolist() if "id" in df_auditoria.columns else "sem coluna id")
+        st.markdown("---")
 
         st.dataframe(df_auditoria, use_container_width=True, hide_index=True)
 
