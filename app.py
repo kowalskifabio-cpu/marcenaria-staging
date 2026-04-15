@@ -218,6 +218,7 @@ if login(supabase):
             "Financeiro": ["Impacto caixa validado", "Compra autorizada", "Forma de pagamento"],
         }
         checklist_gate(
+            supabase,
             "GATE 1 (MAT)",
             "Checklist_G2",
             itens,
