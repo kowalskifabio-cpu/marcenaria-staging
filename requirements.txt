@@ -4,3 +4,4 @@ supabase
 pandas
 xlsxwriter
 gspread
+openpyxl>=3.1.0
