@@ -11,7 +11,8 @@ def render_monitor_ctr(df_global, df_concluidos_global, supabase, html_status_pr
 
     try:
         df_p = df_global.copy()
-
+        df_p = df_p[df_p["Status_Atual"].astype(str).str.strip() != "ARQUIVADO"].copy()
+        
         c_f1, c_f2 = st.columns(2)
         filtro_gestor = c_f1.multiselect(
             "Filtrar por Gestor",
