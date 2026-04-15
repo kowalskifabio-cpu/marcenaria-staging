@@ -43,6 +43,7 @@ def load_pedidos(_supabase, extrair_numero_item):
                 "dono": "Dono",
                 "status_atual": "Status_Atual",
                 "data_entrega": "Data_Entrega",
+                "data_orcamento": "Data_Orcamento",
                 "quantidade": "Quantidade",
                 "unidade": "Unidade",
             }
