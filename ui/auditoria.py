@@ -7,17 +7,21 @@ def render_auditoria(supabase):
     st.info("Histórico em tempo real das movimentações registradas no banco de dados.")
 
     try:
-        res = supabase.table("alteracoes").select("*").execute()
+        res = (
+            supabase.table("alteracoes")
+            .select("*")
+            .order("id", desc=True)
+            .limit(200)
+            .execute()
+        )
 
         if not res.data:
             st.warning("Nenhum registro de auditoria encontrado no banco de dados.")
-        else:
-            df_auditoria = pd.DataFrame(res.data)
+            return
 
-            if "id" in df_auditoria.columns:
-                df_auditoria = df_auditoria.sort_values(by="id", ascending=False)
+        df_auditoria = pd.DataFrame(res.data)
 
-            st.dataframe(df_auditoria, use_container_width=True, hide_index=True)
+        st.dataframe(df_auditoria, use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"Erro ao carregar auditoria: {e}")
