@@ -227,7 +227,6 @@ if login(supabase):
         itens = {
             "Materiais": ["Lista validada", "Quantidades conferidas", "Materiais especiais"],
             "Compras": ["Fornecedores definidos", "Lead times confirmados", "Datas registradas"],
-            "Financeiro": ["Impacto caixa validado", "Compra autorizada", "Forma de pagamento"],
         }
         checklist_gate(
             supabase,
