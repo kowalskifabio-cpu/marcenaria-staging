@@ -248,8 +248,7 @@ if login(supabase):
             "Informações Comerciais": [
                 "Pedido registrado",
                 "Cliente identificado",
-                "Tipo de obra definido",
-                "Responsável identificado",
+                "Tipo de obra definido",                
             ],
             "Escopo Técnico": [
                 "Projeto mínimo recebido",
@@ -258,7 +257,7 @@ if login(supabase):
                 "Itens fora do padrão",
             ],
             "Prazo (prévia)": ["Prazo solicitado registrado", "Prazo avaliado", "Risco de prazo"],
-            "Governança": ["Dono do Pedido definido", "PCP validou viabilidade", "Aprovado formalmente"],
+            "Governança": ["PCP validou viabilidade", "Aprovado formalmente"],
         }
         checklist_gate(
             supabase,
